@@ -1,0 +1,1868 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Hours Sheet</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+:root{
+  --bg:#0a0a0a;--surface:#141414;--surface2:#1c1c1c;--border:#2a2a2a;
+  --orange:#c97a10;--orange-dim:#2e1c00;--ot:#e08c18;
+  --text:#f0f0f0;--muted:#666;
+  --red:#e05555;--red-dim:#2a1010;
+  --green:#4caf7a;--green-dim:#0f2a1a;
+  --blue:#4a90d9;--blue-dim:#0f1f3a;
+  --yellow:#d4a017;--yellow-dim:#2a1f00;
+  --purple:#9b6dff;--purple-dim:#1a0f3a;
+  --dt:#ff4d4d;--dt-dim:#2e0f0f;
+}
+html,body{background:var(--bg);color:var(--text);font-family:'Inter',system-ui,sans-serif;min-height:100vh;font-size:15px;}
+input,button,select,textarea{font-family:inherit;}
+
+/* HEADER */
+.hdr{background:var(--surface);border-bottom:2px solid var(--orange);padding:13px 16px;position:sticky;top:0;z-index:100;}
+.hdr-top{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;}
+.logo-text{font-size:17px;font-weight:800;color:var(--ot);letter-spacing:1px;text-transform:uppercase;}
+.week-sub{font-size:11px;color:var(--muted);margin-top:2px;}
+.hdr-actions{display:flex;gap:7px;flex-wrap:wrap;}
+
+/* TABS */
+.tabs{display:flex;background:var(--surface);border-bottom:1px solid var(--border);overflow-x:auto;}
+.tab{flex:1;padding:12px 8px;border:none;background:transparent;color:var(--muted);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap;}
+.tab.on{color:var(--ot);border-bottom-color:var(--orange);background:var(--bg);}
+
+.page{display:none;padding:14px;max-width:900px;margin:0 auto;}
+.page.on{display:block;}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:12px;}
+.card-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);margin-bottom:12px;}
+
+/* DAY TABS */
+.day-tabs{display:flex;gap:5px;overflow-x:auto;padding-bottom:4px;margin-bottom:12px;}
+.day-tab{flex:0 0 auto;padding:7px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-size:11px;font-weight:600;cursor:pointer;text-align:center;min-width:52px;}
+.day-tab.on{background:var(--orange-dim);border-color:var(--orange);color:var(--ot);}
+.day-tab.has-sick{border-color:var(--red);}
+.day-tab .dt-day{font-size:12px;font-weight:700;}
+.day-tab .dt-date{font-size:9px;margin-top:1px;opacity:.8;}
+.day-tab .dt-dot{font-size:7px;margin-top:2px;}
+
+.field-label{font-size:10px;color:var(--muted);font-weight:700;margin-bottom:5px;text-transform:uppercase;letter-spacing:.6px;}
+input[type=text],input[type=time],input[type=number],input[type=tel],input[type=date],select,textarea{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:9px 11px;font-size:14px;outline:none;}
+input:focus,select:focus,textarea:focus{border-color:var(--orange);}
+input::placeholder,textarea::placeholder{color:var(--muted);}
+select option{background:var(--surface);}
+textarea{resize:none;line-height:1.5;}
+
+/* WORKER ROW */
+.worker-row{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:12px 13px;margin-bottom:10px;min-width:0;}
+.worker-row.ot-day{border-color:var(--orange);}
+.worker-row.dt-day{border-color:var(--dt);}
+.worker-row.absent-row{border-color:var(--purple);opacity:.85;}
+.wr-top{display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap;}
+.wr-top>div:first-child{min-width:0;max-width:100%;flex:1 1 140px;}
+.wr-name{font-weight:700;font-size:14px;overflow-wrap:break-word;word-break:break-word;}
+.wr-role{font-size:11px;color:var(--muted);overflow-wrap:break-word;word-break:break-word;}
+.wr-badges{display:flex;gap:5px;align-items:center;flex-wrap:wrap;margin-left:auto;}
+.badge{border-radius:20px;padding:3px 9px;font-size:10px;font-weight:700;white-space:nowrap;}
+.badge-ot{background:var(--orange-dim);color:var(--ot);border:1px solid var(--orange);}
+.badge-dt{background:var(--dt-dim);color:var(--dt);border:1px solid var(--dt);}
+.badge-sick{background:var(--red-dim);color:var(--red);border:1px solid var(--red);}
+.badge-absent{background:var(--purple-dim);color:var(--purple);border:1px solid var(--purple);}
+.badge-stat{background:var(--blue-dim);color:var(--blue);border:1px solid var(--blue);}
+.badge-wot{background:var(--yellow-dim);color:var(--yellow);border:1px solid var(--yellow);}
+.time-grid{display:grid;grid-template-columns:1fr 1fr 80px 80px;gap:8px;align-items:end;margin-bottom:10px;}
+@media(max-width:480px){.time-grid{grid-template-columns:1fr 1fr;}}
+.time-group{display:flex;flex-direction:column;}
+.hours-badge{border-radius:8px;padding:9px 0;text-align:center;font-weight:800;font-size:14px;}
+.hb-ok{background:var(--green-dim);color:var(--green);}
+.hb-ot{background:var(--orange-dim);color:var(--ot);}
+.hb-dt{background:var(--dt-dim);color:var(--dt);}
+.hb-sick{background:var(--red-dim);color:var(--red);}
+.hb-empty{background:var(--surface2);color:var(--muted);}
+.sick-btn{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:7px 10px;cursor:pointer;color:var(--muted);font-size:11px;font-weight:700;white-space:nowrap;}
+.sick-btn.on{background:var(--red-dim);border-color:var(--red);color:var(--red);}
+.absent-btn{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:7px 10px;cursor:pointer;color:var(--muted);font-size:11px;font-weight:700;white-space:nowrap;}
+.absent-btn.on{background:var(--purple-dim);border-color:var(--purple);color:var(--purple);}
+.stat-btn{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:7px 10px;cursor:pointer;color:var(--muted);font-size:11px;font-weight:700;white-space:nowrap;}
+.stat-btn.on{background:var(--blue-dim);border-color:var(--blue);color:var(--blue);}
+
+/* SIGN ROWS */
+.sign-row{display:flex;align-items:center;gap:8px;padding:7px 0;border-top:1px solid var(--border);flex-wrap:wrap;}
+.sign-label{font-size:11px;color:var(--muted);flex:1;min-width:80px;}
+.signed-pill{background:var(--green-dim);border:1px solid var(--green);color:var(--green);border-radius:20px;padding:3px 9px;font-size:10px;font-weight:700;}
+.signed-ts{font-size:9px;color:var(--muted);margin-left:4px;}
+.foreman-pill{background:var(--blue-dim);border:1px solid var(--blue);color:var(--blue);border-radius:20px;padding:3px 9px;font-size:10px;font-weight:700;}
+
+/* BUTTONS */
+.btn{border:none;border-radius:8px;padding:9px 13px;font-size:12px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:5px;}
+.btn-orange{background:var(--orange);color:#fff;}
+.btn-ghost{background:var(--surface2);color:var(--text);border:1px solid var(--border);}
+.btn-red{background:var(--red-dim);color:var(--red);border:1px solid var(--red);}
+.btn-green{background:var(--green-dim);color:var(--green);border:1px solid var(--green);}
+.btn-blue{background:var(--blue-dim);color:var(--blue);border:1px solid var(--blue);}
+.btn-yellow{background:var(--yellow-dim);color:var(--yellow);border:1px solid var(--yellow);}
+.btn-sm{padding:5px 10px;font-size:11px;}
+.btn-full{width:100%;}
+
+/* CREW */
+.add-row{display:flex;gap:8px;flex-wrap:wrap;}
+.add-row input{flex:1;min-width:120px;}
+.crew-card{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:13px;margin-bottom:10px;}
+.cc-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.cc-info{flex:1 1 140px;min-width:0;}
+.cc-name{font-weight:700;overflow-wrap:break-word;word-break:break-word;}
+.cc-role{font-size:11px;color:var(--muted);overflow-wrap:break-word;word-break:break-word;}
+.cc-actions{display:flex;gap:6px;flex-wrap:wrap;}
+.sick-bank{display:flex;align-items:center;gap:8px;margin-top:7px;}
+.sick-bank-bar{flex:1;height:5px;background:var(--surface2);border-radius:3px;overflow:hidden;}
+.sick-bank-fill{height:100%;border-radius:3px;}
+
+/* MODALS */
+.modal-bg{display:none;position:fixed;inset:0;background:#000d;z-index:500;align-items:center;justify-content:center;padding:12px;}
+.modal-bg.on{display:flex;}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px;width:100%;max-width:520px;max-height:92vh;overflow-y:auto;}
+.modal h3{font-size:15px;font-weight:800;margin-bottom:6px;}
+.modal p{font-size:12px;color:var(--muted);margin-bottom:12px;line-height:1.5;}
+.modal-actions{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;}
+.sig-header{text-align:center;padding:4px 0 10px;}
+.sig-header h2{font-size:16px;font-weight:800;}
+.sig-header p{color:var(--muted);font-size:11px;margin-top:4px;line-height:1.4;}
+canvas{background:#fff;border-radius:10px;width:100%;display:block;touch-action:none;}
+.sig-actions{display:flex;gap:8px;margin-top:10px;}
+
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:var(--orange);color:#fff;font-weight:700;padding:9px 20px;border-radius:30px;font-size:13px;z-index:9999;display:none;white-space:nowrap;box-shadow:0 4px 20px #0009;}
+.toast.on{display:block;}
+.empty{text-align:center;padding:36px 16px;color:var(--muted);}
+</style>
+</head>
+<body>
+<div class="toast" id="toast"></div>
+
+<!-- SIG MODAL -->
+<div class="modal-bg" id="sigModal">
+  <div class="modal">
+    <div class="sig-header"><h2 id="sigName"></h2><p id="sigSub"></p></div>
+    <div id="sigHoursSummary" style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:12px;"></div>
+    <div style="font-size:10px;color:var(--muted);text-align:center;margin-bottom:8px;text-transform:uppercase;letter-spacing:.6px;">Sign below to confirm</div>
+    <canvas id="sigCanvas"></canvas>
+    <div class="sig-actions">
+      <button class="btn btn-ghost btn-sm" onclick="clearSigCanvas()">Clear</button>
+      <button class="btn btn-orange" style="flex:1" onclick="saveSig()">Confirm Signature</button>
+    </div>
+    <button class="btn btn-ghost btn-full" style="margin-top:8px" onclick="closeModal('sigModal')">Cancel</button>
+  </div>
+</div>
+
+<!-- SIGN ALL (FOREMAN WEEKLY) MODAL -->
+<div class="modal-bg" id="signAllModal">
+  <div class="modal">
+    <div class="sig-header"><h2>Foreman - Sign Off Whole Week</h2><p id="signAllSub"></p></div>
+    <div id="signAllSummary" style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:12px;font-size:12px;color:var(--muted);"></div>
+    <div style="font-size:10px;color:var(--muted);text-align:center;margin-bottom:8px;text-transform:uppercase;letter-spacing:.6px;">Sign below to confirm every day/worker below</div>
+    <canvas id="signAllCanvas"></canvas>
+    <div class="sig-actions">
+      <button class="btn btn-ghost btn-sm" onclick="clearSignAllCanvas()">Clear</button>
+      <button class="btn btn-orange" style="flex:1" onclick="saveSignAll()">Confirm All</button>
+    </div>
+    <button class="btn btn-ghost btn-full" style="margin-top:8px" onclick="closeModal('signAllModal')">Cancel</button>
+  </div>
+</div>
+
+
+<!-- NEW WEEK MODAL -->
+<div class="modal-bg" id="newWeekModal">
+  <div class="modal">
+    <h3>Start New Week</h3>
+    <p>Each week is saved separately, so moving forward won't lose this week's data — it'll still be here if you use Pick Week. Sick pay balances carry forward to the next week.</p>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" style="flex:1" onclick="closeModal('newWeekModal')">Cancel</button>
+      <button class="btn btn-orange" onclick="exportThenClear()">Export & Move to Next Week</button>
+      <button class="btn btn-red btn-sm" onclick="confirmClearOnly()">Clear This Week</button>
+    </div>
+  </div>
+</div>
+
+<!-- SICK BANK MODAL -->
+<div class="modal-bg" id="sickBankModal">
+  <div class="modal">
+    <h3>Edit Sick Pay Bank</h3>
+    <p id="sickBankSub"></p>
+    <div style="margin-bottom:10px;"><div class="field-label">Annual Allowance (hrs)</div><input type="number" id="sbAllowance" min="0" max="9999" step="1"></div>
+    <div><div class="field-label">Hours Used Prior to This Week</div><input type="number" id="sbUsed" min="0" max="9999" step="1"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" style="flex:1" onclick="closeModal('sickBankModal')">Cancel</button>
+      <button class="btn btn-orange" style="flex:1" onclick="saveSickBank()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- BREAK MODAL -->
+<div class="modal-bg" id="breakModal">
+  <div class="modal">
+    <h3 id="breakModalTitle">Set Break</h3>
+    <p>Unpaid break deducted from total hours</p>
+    <div><div class="field-label">Break Duration (minutes)</div><input type="number" id="breakMins" min="0" max="120" step="5" value="30"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" style="flex:1" onclick="closeModal('breakModal')">Cancel</button>
+      <button class="btn btn-orange" style="flex:1" onclick="saveBreak()">Save</button>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<!-- SICK MODAL -->
+<div class="modal-bg" id="sickModal">
+  <div class="modal">
+    <h3 id="sickModalTitle">Mark Sick Day</h3>
+    <p id="sickModalSub"></p>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" style="flex:1" onclick="closeModal('sickModal')">Cancel</button>
+      <button class="btn btn-ghost" style="color:var(--red);border-color:var(--red);" onclick="confirmSick()">Mark Sick Day</button>
+    </div>
+  </div>
+</div>
+
+<!-- STAT MODAL -->
+<div class="modal-bg" id="statModal">
+  <div class="modal">
+    <h3 id="statModalTitle">Mark Stat Holiday</h3>
+    <p id="statModalSub"></p>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" style="flex:1" onclick="closeModal('statModal')">Cancel</button>
+      <button class="btn btn-ghost" style="color:var(--blue);border-color:var(--blue);" onclick="confirmStat()">Mark Stat Holiday</button>
+    </div>
+  </div>
+</div>
+
+<!-- ABSENT MODAL -->
+<div class="modal-bg" id="absentModal">
+  <div class="modal">
+    <h3 id="absentModalTitle">Mark Absent</h3>
+    <p id="absentModalSub"></p>
+    <div><div class="field-label">Reason</div><textarea id="absentReason" rows="2" placeholder="e.g. No call no show, personal day..."></textarea></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" style="flex:1" onclick="closeModal('absentModal')">Cancel</button>
+      <button class="btn btn-ghost" style="color:var(--purple);border-color:var(--purple);" onclick="saveAbsent()">Mark Absent</button>
+    </div>
+  </div>
+</div>
+
+<!-- FOREMAN MODAL -->
+<div class="modal-bg" id="foremanModal">
+  <div class="modal">
+    <h3>Sign-off PDF</h3>
+    <p>Confirm your name before exporting. This will appear on the PDF as the foreman.</p>
+    <div><div class="field-label">Foreman Name</div><input type="text" id="foremanNameInput" placeholder="Your full name"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" style="flex:1" onclick="closeModal('foremanModal')">Cancel</button>
+      <button class="btn btn-orange" style="flex:1" onclick="saveForemanName()">Export PDF</button>
+    </div>
+  </div>
+</div>
+
+<!-- HEADER -->
+<div class="hdr">
+  <div class="hdr-top">
+    <div>
+      <div class="logo-text">Hours Sheet</div>
+      <div class="week-sub" id="weekSub"></div>
+      <div style="font-size:9px;color:var(--muted);opacity:.6;margin-top:1px">Build 2026-09-03d</div>
+    </div>
+    <div class="hdr-actions">
+      <button class="btn btn-blue btn-sm" onclick="openSignAllModal()">Sign All</button>
+      <button class="btn btn-orange btn-sm" onclick="openExportModal()">Export</button>
+      <button class="btn btn-red btn-sm" onclick="openModal('newWeekModal')">New Week</button>
+    </div>
+  </div>
+  <div style="display:flex;gap:7px;margin-top:10px;align-items:center;flex-wrap:wrap;">
+    <button class="btn btn-ghost btn-sm" onclick="goToWeek(-1)">&larr; Prev</button>
+    <button class="btn btn-ghost btn-sm" onclick="openWeekPicker()">Pick Week</button>
+    <button class="btn btn-ghost btn-sm" onclick="goToWeek(1)">Next &rarr;</button>
+  </div>
+</div>
+
+<!-- PAST WEEK BANNER -->
+<div id="pastWeekBanner" style="display:none;background:var(--orange-dim);border-bottom:1px solid var(--orange);padding:10px 16px;align-items:center;gap:10px;flex-wrap:wrap;">
+  <span id="pastWeekBannerText" style="font-size:12px;color:var(--ot);font-weight:700;flex:1">Viewing a past week - changes here only affect this week</span>
+  <button class="btn btn-orange btn-sm" onclick="goToCurrentWeek()">Back to Current Week</button>
+</div>
+
+<!-- EXPORT MODAL -->
+<div class="modal-bg" id="exportModal">
+  <div class="modal">
+    <h3>Export</h3>
+    <p id="exportModalSub">Choose what to export or import.</p>
+    <div class="modal-actions" style="flex-direction:column;">
+      <button class="btn btn-orange btn-full" onclick="closeModal('exportModal');exportCSV()">This Week — CSV</button>
+      <button class="btn btn-green btn-full" onclick="closeModal('exportModal');exportSignoffPDF()">This Week — Sign-off PDF</button>
+      <button class="btn btn-blue btn-full" onclick="closeModal('exportModal');openBiweeklyModal()">Biweekly — CSV + PDF</button>
+      <button class="btn btn-ghost btn-full" style="margin-top:6px" onclick="closeModal('exportModal');openModal('importModal')">Import a CSV</button>
+      <button class="btn btn-ghost btn-full" onclick="closeModal('exportModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- IMPORT CSV MODAL -->
+<div class="modal-bg" id="importModal">
+  <div class="modal">
+    <h3>Import CSV</h3>
+    <p>Upload a CSV exported from this app to restore or fix a week's data. This will overwrite the week currently shown — export first if you want a backup.</p>
+    <div><div class="field-label">CSV File</div><input type="file" id="importFileInput" accept=".csv" style="font-size:12px;padding:8px;"></div>
+    <div id="importStatus" style="font-size:12px;color:var(--muted);margin-top:8px;"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" style="flex:1" onclick="closeModal('importModal')">Cancel</button>
+      <button class="btn btn-orange" style="flex:1" onclick="runImportCSV()">Import</button>
+    </div>
+  </div>
+</div>
+
+<!-- WEEK PICKER MODAL -->
+<div class="modal-bg" id="weekPickerModal">
+  <div class="modal">
+    <h3>Pick a Week</h3>
+    <p>Choose any date - the app will show the full week (Sun-Sat) it falls in.</p>
+    <div><div class="field-label">Date</div><input type="date" id="weekPickerInput"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" style="flex:1" onclick="closeModal('weekPickerModal')">Cancel</button>
+      <button class="btn btn-orange" style="flex:1" onclick="applyWeekPicker()">Go to Week</button>
+    </div>
+  </div>
+</div>
+
+<!-- BIWEEKLY EXPORT MODAL -->
+<div class="modal-bg" id="biweeklyModal">
+  <div class="modal">
+    <h3>Biweekly Export</h3>
+    <p>Pick the two weeks to combine. Exports one CSV and one PDF covering both, ready to send to payroll.</p>
+    <div style="margin-bottom:10px;"><div class="field-label">Week 1</div><select id="biweeklyWeek1Select"></select></div>
+    <div><div class="field-label">Week 2</div><select id="biweeklyWeek2Select"></select></div>
+    <div class="modal-actions" style="flex-direction:column;">
+      <button class="btn btn-orange btn-full" style="margin-top:4px" onclick="runBiweeklyBoth()">Export CSV + PDF</button>
+      <button class="btn btn-ghost btn-full" onclick="closeModal('biweeklyModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="tabs">
+  <button class="tab on" id="tab-hours" onclick="switchTab('hours')">Hours</button>
+  <button class="tab" id="tab-manage" onclick="switchTab('manage')">Crew</button>
+</div>
+
+<!-- HOURS PAGE -->
+<div class="page on" id="page-hours">
+  <div class="day-tabs" id="dayTabs"></div>
+  <div id="dayPanel"></div>
+</div>
+
+<!-- MANAGE PAGE -->
+<div class="page" id="page-manage">
+  <div class="card">
+    <div class="card-title">Add Worker</div>
+    <div class="add-row">
+      <input type="text" id="newName" placeholder="Full name" onkeydown="if(event.key==='Enter')addWorker()">
+      <input type="text" id="newRole" placeholder="Role (e.g. Carpenter)" onkeydown="if(event.key==='Enter')addWorker()">
+      <input type="tel" id="newPhone" placeholder="Phone" style="min-width:110px;">
+      <button class="btn btn-orange" onclick="addWorker()">+ Add</button>
+    </div>
+  </div>
+  <div id="crewCards"></div>
+</div>
+
+<script>
+const DAYS=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+const DEFAULT_BREAK=30;
+const SICK_HRS=8;
+const STAT_HRS=8;
+const WEATHER_ICONS={"Clear":"☀️","Partly Cloudy":"⛅","Overcast":"☁️","Rain":"🌧️","Thunderstorm":"⛈️","Snow":"❄️","Windy":"🌬️","Fog":"🌫️","Extreme Heat":"🌡️"};
+const WEATHER_LIST=Object.keys(WEATHER_ICONS);
+
+// Returns the Sunday (start of week) for a given reference date, as a Date object
+function getWeekStart(refDate){
+  const sun=new Date(refDate);
+  sun.setHours(0,0,0,0);
+  sun.setDate(sun.getDate()-sun.getDay());
+  return sun;
+}
+// Format a week-start Date into a storage key like "2026-06-14"
+function weekKey(sunDate){
+  const y=sunDate.getFullYear(),m=String(sunDate.getMonth()+1).padStart(2,"0"),d=String(sunDate.getDate()).padStart(2,"0");
+  return y+"-"+m+"-"+d;
+}
+function getWeekDatesFrom(sunDate){
+  return DAYS.map((_,i)=>{const d=new Date(sunDate);d.setDate(sunDate.getDate()+i);return d.toLocaleDateString("en-US",{month:"short",day:"numeric"});});
+}
+
+// currentWeekStart = the real "today" week, used to know if we're viewing a past/future week
+const TODAY_WEEK_START=getWeekStart(new Date());
+// viewingWeekStart = whichever week is currently displayed (starts on today's week)
+let viewingWeekStart=new Date(TODAY_WEEK_START);
+
+let WD=getWeekDatesFrom(viewingWeekStart);
+let WEEK_LABEL=WD[0]+" to "+WD[6];
+
+function isViewingCurrentWeek(){return weekKey(viewingWeekStart)===weekKey(TODAY_WEEK_START);}
+function isViewingFutureWeek(){return viewingWeekStart.getTime()>TODAY_WEEK_START.getTime();}
+function isViewingPastWeek(){return viewingWeekStart.getTime()<TODAY_WEEK_START.getTime();}
+
+function loadWeekData(){
+  const key="hs4_days_"+weekKey(viewingWeekStart);
+  dayData=JSON.parse(localStorage.getItem(key)||"{}");
+  DAYS.forEach(d=>{ if(!dayData[d])dayData[d]={jobsite:"",weather:"",notes:"",workers:{}}; });
+}
+
+function refreshWeekUI(){
+  WD=getWeekDatesFrom(viewingWeekStart);
+  WEEK_LABEL=WD[0]+" to "+WD[6];
+  const sub=document.getElementById("weekSub");
+  const tag=isViewingFutureWeek()?" (Future Week)":isViewingPastWeek()?" (Past Week)":"";
+  if(sub)sub.textContent="Week of "+WD[0]+" - "+WD[6]+tag;
+  const banner=document.getElementById("pastWeekBanner");
+  const bannerText=document.getElementById("pastWeekBannerText");
+  if(bannerText)bannerText.textContent=isViewingFutureWeek()?"Viewing a future week - changes here only affect this week":"Viewing a past week - changes here only affect this week";
+  if(banner)banner.style.display=isViewingCurrentWeek()?"none":"flex";
+}
+
+// STATE
+// crew[]: {id,name,role,phone,sickAllowance,sickUsedPrior}
+// dayData[day]: {jobsite,weather,notes,workers:{id:{in,out,break,sick,absent,absentReason,workerSig,workerSigTs,foremanSig,foremanSigTs}}}
+let crew=JSON.parse(localStorage.getItem("hs4_crew")||"[]");
+
+// One-time migration: old versions stored the current week under "hs4_days" with no date key.
+// Move that into the new per-week key for today's week so existing data is not lost.
+(function migrateOldStorage(){
+  const old=localStorage.getItem("hs4_days");
+  if(old){
+    const newKey="hs4_days_"+weekKey(TODAY_WEEK_START);
+    if(!localStorage.getItem(newKey)){
+      localStorage.setItem(newKey,old);
+    }
+    localStorage.removeItem("hs4_days");
+  }
+})();
+
+let dayData={};
+loadWeekData();
+
+crew.forEach(w=>{
+  if(w.sickAllowance===undefined)w.sickAllowance=40;
+  if(w.sickUsedPrior===undefined)w.sickUsedPrior=0;
+  if(!w.phone)w.phone="";
+});
+
+let activeDay=DAYS[0];
+let activeTab="hours";
+let editingId=null;
+let sigTarget=null,sigCtx=null,sigDrawing=false;
+let sickBankId=null,breakTarget=null;
+
+let absentTarget=null;
+
+function save(){
+  localStorage.setItem("hs4_crew",JSON.stringify(crew));
+  localStorage.setItem("hs4_days_"+weekKey(viewingWeekStart),JSON.stringify(dayData));
+}
+
+// WEEK NAVIGATION
+function goToWeek(offsetWeeks){
+  viewingWeekStart.setDate(viewingWeekStart.getDate()+(offsetWeeks*7));
+  viewingWeekStart=new Date(viewingWeekStart);
+  loadWeekData();
+  refreshWeekUI();
+  activeDay=DAYS[0];
+  render();
+}
+function goToCurrentWeek(){
+  viewingWeekStart=new Date(TODAY_WEEK_START);
+  loadWeekData();
+  refreshWeekUI();
+  activeDay=DAYS[0];
+  render();
+}
+function openWeekPicker(){
+  const inp=document.getElementById("weekPickerInput");
+  // Set the date input to the Sunday of the currently viewed week
+  const y=viewingWeekStart.getFullYear(),m=String(viewingWeekStart.getMonth()+1).padStart(2,"0"),d=String(viewingWeekStart.getDate()).padStart(2,"0");
+  inp.value=y+"-"+m+"-"+d;
+  openModal("weekPickerModal");
+}
+function openExportModal(){
+  const sub=document.getElementById("exportModalSub");
+  if(sub)sub.textContent="\"This Week\" refers to "+WD[0]+" - "+WD[6]+(isViewingCurrentWeek()?"":" (currently viewing)")+".";
+  openModal("exportModal");
+}
+function applyWeekPicker(){
+  const val=document.getElementById("weekPickerInput").value;
+  if(!val){toast("Pick a date first");return;}
+  const picked=new Date(val+"T00:00:00");
+  viewingWeekStart=getWeekStart(picked);
+  loadWeekData();
+  refreshWeekUI();
+  activeDay=DAYS[0];
+  closeModal("weekPickerModal");
+  render();
+  toast("Showing week of "+WD[0]+" - "+WD[6]);
+}
+
+// CALCULATIONS
+function calcHours(inT,outT,brk){
+  if(!inT||!outT)return 0;
+  const[ih,im]=inT.split(":").map(Number);
+  const[oh,om]=outT.split(":").map(Number);
+  const mins=(oh*60+om)-(ih*60+im)-(brk||0);
+  return mins>0?Math.round(mins/60*100)/100:0;
+}
+function dayReg(hrs,day){if(day==="Sun")return 0;return Math.min(8,hrs);}
+function dayOT(hrs,day){
+  const capped=Math.min(hrs,12);
+  if(day==="Sun")return Math.max(0,Math.round(capped*100)/100);
+  return Math.max(0,Math.round((capped-8)*100)/100);
+}
+function dayDT(hrs,day){return Math.max(0,Math.round((hrs-12)*100)/100);}
+function dayWorkedOnly(wd){return dayTotalHrs(wd);}
+function dayTotalHrs(wd){
+  if(!wd||wd.absent)return 0;
+  if(wd.sick)return SICK_HRS;
+  if(wd.stat)return STAT_HRS;
+  const brk=wd.break!==undefined?wd.break:DEFAULT_BREAK;
+  return calcHours(wd.in||"",wd.out||"",brk);
+}
+function workerDayHrs(wid,day){
+  const wd=dayData[day]?.workers?.[wid];
+  return dayTotalHrs(wd);
+}
+function totalWorkedHrs(w){
+  return Math.round(DAYS.reduce((s,d)=>{
+    const wd=dayData[d]?.workers?.[w.id];
+    if(!wd||wd.sick||wd.absent||wd.stat)return s;
+    return s+dayTotalHrs(wd);
+  },0)*100)/100;
+}
+function totalTravelHrs(w){
+  return Math.round(DAYS.reduce((s,d)=>{
+    const wd=dayData[d]?.workers?.[w.id];
+    if(!wd||wd.sick||wd.absent||wd.stat)return s;
+    return s+(parseFloat(wd.travel)||0);
+  },0)*100)/100;
+}
+function totalDailyOT(w){
+  return Math.round(DAYS.reduce((s,d)=>{
+    const wd=dayData[d]?.workers?.[w.id];
+    if(!wd||wd.sick||wd.absent||wd.stat)return s;
+    return s+dayOT(dayWorkedOnly(wd),d);
+  },0)*100)/100;
+}
+function totalDailyDT(w){
+  return Math.round(DAYS.reduce((s,d)=>{
+    const wd=dayData[d]?.workers?.[w.id];
+    if(!wd||wd.sick||wd.absent||wd.stat)return s;
+    return s+dayDT(dayWorkedOnly(wd),d);
+  },0)*100)/100;
+}
+function totalSickHrsWeek(w){return DAYS.filter(d=>dayData[d]?.workers?.[w.id]?.sick).length*SICK_HRS;}
+function totalStatHrsWeek(w){return DAYS.filter(d=>dayData[d]?.workers?.[w.id]?.stat).length*STAT_HRS;}
+// Combined total shown in Crew tab: worked hours + travel + paid sick + paid stat (matches sign-off PDF total)
+function totalAllPaidHrs(w){
+  return Math.round((totalWorkedHrs(w)+totalTravelHrs(w)+totalSickHrsWeek(w)+totalStatHrsWeek(w))*100)/100;
+}
+// Scans every stored week up to and including the currently viewed week to total sick hours used.
+// This makes the sick bank correct no matter how you navigate between weeks (Prev/Next/Pick Week),
+// instead of relying on a manually-saved "sickUsedPrior" snapshot that only updated via New Week.
+function sickUsedTotal(w){
+  let total=w.sickUsedPrior||0; // legacy carry-forward value from before per-week tracking existed
+  for(let i=0;i<localStorage.length;i++){
+    const key=localStorage.key(i);
+    if(!key||key.indexOf("hs4_days_")!==0)continue;
+    const dateStr=key.slice("hs4_days_".length);
+    const wkStart=new Date(dateStr+"T00:00:00");
+    if(isNaN(wkStart.getTime()))continue;
+    if(wkStart.getTime()>viewingWeekStart.getTime())continue; // only count up to the viewed week
+    let wd;
+    try{wd=JSON.parse(localStorage.getItem(key)||"{}");}catch(e){continue;}
+    DAYS.forEach(d=>{ if(wd[d]?.workers?.[w.id]?.sick)total+=SICK_HRS; });
+  }
+  return total;
+}
+function sickRemaining(w){return Math.max(0,(w.sickAllowance||40)-sickUsedTotal(w));}
+function isWeekOT(w){return totalDailyOT(w)>0;}
+function isWeekDT(w){return totalDailyDT(w)>0;}
+
+// UTILS
+function toast(msg,dur=2400){
+  const el=document.getElementById("toast");el.textContent=msg;el.className="toast on";
+  clearTimeout(el._t);el._t=setTimeout(()=>el.className="toast",dur);
+}
+// SAFETY NET: any uncaught error anywhere in the app now shows on-screen instead of failing silently.
+// If a button tap ever "does nothing" again, this will surface why.
+window.addEventListener("error",function(e){
+  try{toast("App error: "+(e.message||"unknown")+" (line "+(e.lineno||"?")+")",6000);}catch(_){}
+});
+window.addEventListener("unhandledrejection",function(e){
+  try{toast("App error: "+(e.reason&&e.reason.message?e.reason.message:e.reason),6000);}catch(_){}
+});
+function esc(s){return(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
+function openModal(id){document.getElementById(id).className="modal-bg on";}
+function closeModal(id){document.getElementById(id).className="modal-bg";}
+function wIcon(l){return WEATHER_ICONS[l]||"";}
+function tsNow(){return new Date().toLocaleString("en-US",{month:"short",day:"numeric",hour:"numeric",minute:"2-digit",hour12:true});}
+
+// TABS
+function switchTab(t){
+  activeTab=t;
+  ["hours","manage"].forEach(n=>{
+    document.getElementById("tab-"+n).className="tab"+(n===t?" on":"");
+    document.getElementById("page-"+n).className="page"+(n===t?" on":"");
+  });
+  render();
+}
+
+// NEW WEEK
+function exportThenClear(){exportCSV();setTimeout(()=>{doNewWeek();closeModal("newWeekModal");},500);}
+function confirmClearOnly(){
+  if(!confirm("This will clear all data for the week currently showing. Continue?"))return;
+  crew=crew.map(w=>({...w,sickUsedPrior:sickUsedTotal(w)}));
+  dayData={};DAYS.forEach(d=>{dayData[d]={jobsite:"",weather:"",notes:"",workers:{}};});
+  save();render();closeModal("newWeekModal");toast("Week cleared");
+}
+function doNewWeek(){
+  crew=crew.map(w=>({...w,sickUsedPrior:sickUsedTotal(w)}));
+  localStorage.setItem("hs4_crew",JSON.stringify(crew));
+  goToWeek(1);
+  toast("Moved to next week");
+}
+
+// DAY TABS
+function renderDayTabs(){
+  document.getElementById("dayTabs").innerHTML=DAYS.map((d,i)=>{
+    const hasSick=crew.some(w=>dayData[d]?.workers?.[w.id]?.sick);
+    const hasStat=crew.some(w=>dayData[d]?.workers?.[w.id]?.stat);
+    const hasData=crew.some(w=>{const wd=dayData[d]?.workers?.[w.id];return wd?.in||wd?.sick||wd?.absent||wd?.stat;});
+    const hasAbsent=crew.some(w=>dayData[d]?.workers?.[w.id]?.absent);
+    let cls="day-tab"+(d===activeDay?" on":"")+(hasSick?" has-sick":"");
+    const dotColor=hasSick?"var(--red)":hasAbsent?"var(--purple)":hasStat?"var(--blue)":hasData?"var(--green)":"transparent";
+    return "<div class='"+cls+"' onclick='setDay(\""+d+"\")'><div class='dt-day'>"+d+"</div><div class='dt-date'>"+WD[i]+"</div><div class='dt-dot' style='color:"+dotColor+"'>"+(hasData?"●":" ")+"</div></div>";
+  }).join("");
+}
+function setDay(d){activeDay=d;renderDayTabs();renderDayPanel();}
+
+// DAY PANEL
+function renderDayPanel(){
+  const dd=dayData[activeDay];
+  const wi=DAYS.indexOf(activeDay);
+
+  let html="<div class='card'>";
+  html+="<div style='display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;'>";
+  html+="<div><div class='field-label'>Jobsite</div><input type='text' placeholder='Address...' value='"+esc(dd.jobsite)+"' oninput='updDay(\"jobsite\",this.value)'></div>";
+  html+="<div><div class='field-label'>Weather</div><select onchange='updDay(\"weather\",this.value)'><option value=''>Select...</option>";
+  WEATHER_LIST.forEach(l=>{html+="<option value='"+l+"'"+(dd.weather===l?" selected":"")+">"+wIcon(l)+" "+l+"</option>";});
+  html+="</select></div></div>";
+  html+="<div><div class='field-label'>Day Notes</div><textarea rows='2' placeholder='Delays, instructions, anything worth recording...' oninput='updDay(\"notes\",this.value)'>"+esc(dd.notes)+"</textarea></div></div>";
+
+
+
+  if(!crew.length){
+    html+="<div class='empty'>Add workers in the Crew tab</div>";
+  } else {
+    html+="<div style='display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px;flex-wrap:wrap'>";
+    html+="<div class='card-title' style='margin-bottom:0'>Worker Hours - "+activeDay+" "+WD[wi]+"</div>";
+    html+="<button class='btn btn-blue btn-sm' onclick='openSignAllModal(\""+activeDay+"\")'>Sign Day</button>";
+    html+="</div>";
+    crew.forEach(w=>{
+      const wd=dd.workers?.[w.id]||{};
+      const isSick=!!wd.sick,isAbsent=!!wd.absent,isStat=!!wd.stat;
+      const brk=wd.break!==undefined?wd.break:DEFAULT_BREAK;
+      const hrs=isSick?SICK_HRS:isStat?STAT_HRS:(isAbsent?0:dayTotalHrs(wd));
+      const workedOnly=isSick||isAbsent||isStat?hrs:dayWorkedOnly(wd);
+      const reg=dayReg(workedOnly,activeDay),ot=dayOT(workedOnly,activeDay),dt=dayDT(workedOnly,activeDay);
+      const isDOT=ot>0&&!isSick&&!isAbsent&&!isStat;
+      const isDDT=dt>0&&!isSick&&!isAbsent&&!isStat;
+      const rem=sickRemaining(w);
+      const hbCls=isSick?"hb-sick":isStat?"hb-ok":isAbsent?"hb-empty":hrs===0?"hb-empty":isDDT?"hb-dt":isDOT?"hb-ot":"hb-ok";
+      const wSigned=!!wd.workerSig,fSigned=!!wd.foremanSig;
+
+      html+="<div class='worker-row"+(isDDT?" dt-day":isDOT?" ot-day":"")+(isAbsent?" absent-row":"")+"'>";
+      // TOP ROW
+      html+="<div class='wr-top'><div><div class='wr-name'>"+esc(w.name)+"</div><div class='wr-role'>"+esc(w.role)+"</div></div>";
+      html+="<div class='wr-badges'>";
+      if(isSick)html+="<span class='badge badge-sick'>SICK</span>";
+      if(isStat)html+="<span class='badge badge-stat'>STAT</span>";
+      if(isAbsent)html+="<span class='badge badge-absent'>ABSENT</span>";
+      if(isDOT)html+="<span class='badge badge-ot'>OT</span>";
+      if(isDDT)html+="<span class='badge badge-dt'>DT</span>";
+      html+="</div>";
+      html+="<button class='sick-btn"+(isSick?" on":"")+"' onclick='toggleSick(this.dataset.d,"+w.id+")' data-d='"+activeDay+"'>"+(isSick?"Undo Sick":"Sick Day")+"</button>";
+      html+="<button class='stat-btn"+(isStat?" on":"")+"' onclick='toggleStat(this.dataset.d,"+w.id+")' data-d='"+activeDay+"'>"+(isStat?"Undo Stat":"Stat Holiday")+"</button>";
+      html+="<button class='absent-btn"+(isAbsent?" on":"")+"' onclick='"+(isAbsent?"undoAbsent(this.dataset.d,"+w.id+")":"openAbsentModal(this.dataset.d,"+w.id+")")+"' data-d='"+activeDay+"'>"+(isAbsent?"Undo":"Absent")+"</button>";
+      html+="</div>";
+
+      // STATUS BODY
+      if(isAbsent){
+        html+="<div style='background:var(--purple-dim);border:1px solid var(--purple);border-radius:8px;padding:10px 12px;font-size:13px;color:var(--purple);margin-bottom:10px'>";
+        html+="<div style='font-weight:700'>Absent - No Pay</div>";
+        if(wd.absentReason)html+="<div style='font-size:12px;opacity:.8;margin-top:2px'>"+esc(wd.absentReason)+"</div>";
+        html+="</div>";
+      } else if(isSick){
+        html+="<div style='background:var(--red-dim);border:1px solid var(--red);border-radius:8px;padding:10px 12px;font-size:13px;color:var(--red);display:flex;align-items:center;gap:8px;margin-bottom:10px'>";
+        html+="<span style='flex:1'>Sick day - "+SICK_HRS+"h sick pay</span>";
+        html+="<span style='font-size:11px;color:"+(rem<=8?"var(--red)":"var(--muted)")+"'>Bank: "+rem+"h left</span></div>";
+      } else if(isStat){
+        html+="<div style='background:var(--blue-dim);border:1px solid var(--blue);border-radius:8px;padding:10px 12px;font-size:13px;color:var(--blue);margin-bottom:10px'>";
+        html+="<span>Stat holiday - "+STAT_HRS+"h paid</span></div>";
+      } else {
+        // TIME INPUTS
+        html+="<div class='time-grid' style='margin-bottom:10px'>";
+        html+="<div class='time-group'><div class='field-label'>Time In</div><input type='time' value='"+esc(wd.in||"")+"' oninput='updWorkerTime(\""+activeDay+"\","+w.id+",\"in\",this.value)' onchange='updWorkerTime(\""+activeDay+"\","+w.id+",\"in\",this.value)'></div>";
+        html+="<div class='time-group'><div class='field-label'>Time Out</div><input type='time' value='"+esc(wd.out||"")+"' oninput='updWorkerTime(\""+activeDay+"\","+w.id+",\"out\",this.value)' onchange='updWorkerTime(\""+activeDay+"\","+w.id+",\"out\",this.value)'></div>";
+        html+="<div class='time-group'><div class='field-label'>Break</div><button class='btn btn-ghost btn-full' style='font-size:12px;padding:9px 6px' onclick='openBreakModal(this.dataset.d,"+w.id+","+brk+")' data-d='"+activeDay+"'>"+brk+"min</button></div>";
+        html+="<div class='time-group'><div class='field-label'>Hours</div><div class='hours-badge "+hbCls+"' id='hbadge-"+w.id+"'>"+(hrs>0?hrs+"h":"--")+"</div></div>";
+        html+="</div>";
+        // Travel, breakdown & worker notes
+        const travel=parseFloat(wd.travel)||0;
+        const workedOnly=dayWorkedOnly(wd);
+        const reg=dayReg(workedOnly,activeDay),ot=dayOT(workedOnly,activeDay),dt=dayDT(workedOnly,activeDay);
+        html+="<div style='display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;align-items:center'>";
+        html+="<div id='chips-"+w.id+"' style='display:contents'>";
+        html+="<span style='font-size:12px;font-weight:700;color:var(--green);background:var(--green-dim);border-radius:6px;padding:3px 9px'>"+reg+"h reg</span>";
+        if(ot>0)html+="<span style='font-size:12px;font-weight:700;color:var(--ot);background:var(--orange-dim);border-radius:6px;padding:3px 9px'>"+ot+"h OT</span>";
+        if(dt>0)html+="<span style='font-size:12px;font-weight:700;color:var(--dt);background:var(--dt-dim);border-radius:6px;padding:3px 9px'>"+dt+"h DT</span>";
+        html+="</div>";
+        html+="<div style='display:flex;align-items:center;gap:5px;margin-left:auto'>";
+        html+="<div class='field-label' style='margin-bottom:0'>Travel</div>";
+        html+="<input type='number' min='0' max='24' step='0.5' placeholder='0h' value='"+(travel||"")+"' style='width:65px;padding:5px 8px;font-size:13px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--blue);font-weight:700;outline:none;text-align:center' oninput='updWorkerField(\""+activeDay+"\","+w.id+",\"travel\",this.value)' onchange='updWorkerField(\""+activeDay+"\","+w.id+",\"travel\",this.value)'>";
+        html+="</div></div>";
+        html+="<textarea rows='1' placeholder='Notes...' style='font-size:12px;padding:7px 10px;resize:none;width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);outline:none;margin-bottom:8px' oninput='updWorkerField(\""+activeDay+"\","+w.id+",\"notes\",this.value)'>"+esc(wd.notes||"")+"</textarea>";
+      }
+
+      // SIGN ROWS - only for workers who actually worked
+      if(!isAbsent&&!isSick&&!isStat){
+        html+="<div class='sign-row'><span class='sign-label'>"+esc(w.name)+"</span>";
+        if(wSigned)html+="<span class='signed-pill'>Signed</span><span class='signed-ts'>"+esc(wd.workerSigTs||"")+"</span><button class='btn btn-ghost btn-sm' onclick='clearDaySig(this.dataset.d,"+w.id+",this.dataset.r)' data-d='"+activeDay+"' data-r='worker'>Re-sign</button>";
+        else html+="<button class='btn btn-orange btn-sm' onclick='startDaySig("+w.id+",this.dataset.d,this.dataset.r)' data-d='"+activeDay+"' data-r='worker'>Sign</button>";
+        html+="</div>";
+        html+="<div class='sign-row'><span class='sign-label'>Foreman confirms</span>";
+        if(fSigned)html+="<span class='foreman-pill'>Foreman OK</span><span class='signed-ts'>"+esc(wd.foremanSigTs||"")+"</span><button class='btn btn-ghost btn-sm' onclick='clearDaySig(this.dataset.d,"+w.id+",this.dataset.r)' data-d='"+activeDay+"' data-r='foreman'>Re-sign</button>";
+        else html+="<button class='btn btn-blue btn-sm' onclick='startDaySig("+w.id+",this.dataset.d,this.dataset.r)' data-d='"+activeDay+"' data-r='foreman'>Confirm</button>";
+        html+="</div>";
+      }
+      html+="</div>";
+    });
+  }
+  document.getElementById("dayPanel").innerHTML=html;
+}
+
+function updDay(field,val){dayData[activeDay][field]=val;save();if(field==="notes")return;renderDayTabs();}
+function updWorkerTime(day,id,field,val){
+  if(!dayData[day].workers[id])dayData[day].workers[id]={};
+  dayData[day].workers[id][field]=val;
+  save();
+  const wd=dayData[day].workers[id];
+  const hrs=dayTotalHrs(wd);
+  const worked=dayWorkedOnly(wd);
+  const reg=dayReg(worked,day),ot=dayOT(worked,day),dt=dayDT(worked,day);
+  const badge=document.getElementById("hbadge-"+id);
+  if(badge){badge.textContent=hrs>0?hrs+"h":"--";badge.className="hours-badge "+(hrs===0?"hb-empty":dt>0?"hb-dt":ot>0?"hb-ot":"hb-ok");}
+  const chips=document.getElementById("chips-"+id);
+  if(chips){
+    let ch="<span style='font-size:12px;font-weight:700;color:var(--green);background:var(--green-dim);border-radius:6px;padding:3px 9px'>"+reg+"h reg</span>";
+    if(ot>0)ch+="<span style='font-size:12px;font-weight:700;color:var(--ot);background:var(--orange-dim);border-radius:6px;padding:3px 9px'>"+ot+"h OT</span>";
+    if(dt>0)ch+="<span style='font-size:12px;font-weight:700;color:var(--dt);background:var(--dt-dim);border-radius:6px;padding:3px 9px'>"+dt+"h DT</span>";
+    chips.innerHTML=ch;
+  }
+  renderDayTabs();
+}
+function updWorkerField(day,id,field,val){
+  if(!dayData[day].workers[id])dayData[day].workers[id]={};
+  dayData[day].workers[id][field]=val;
+  save();
+  if(field==="travel"){
+    const wd=dayData[day].workers[id];
+    const hrs=dayTotalHrs(wd);
+    const worked=dayWorkedOnly(wd);
+    const ot=dayOT(worked,day),dt=dayDT(worked,day);
+    const reg=dayReg(worked,day);
+    const badge=document.getElementById("hbadge-"+id);
+    if(badge){badge.className="hours-badge "+(hrs===0?"hb-empty":dt>0?"hb-dt":ot>0?"hb-ot":"hb-ok");}
+    const chips=document.getElementById("chips-"+id);
+    if(chips){
+      let ch="<span style='font-size:12px;font-weight:700;color:var(--green);background:var(--green-dim);border-radius:6px;padding:3px 9px'>"+reg+"h reg</span>";
+      if(ot>0)ch+="<span style='font-size:12px;font-weight:700;color:var(--ot);background:var(--orange-dim);border-radius:6px;padding:3px 9px'>"+ot+"h OT</span>";
+      if(dt>0)ch+="<span style='font-size:12px;font-weight:700;color:var(--dt);background:var(--dt-dim);border-radius:6px;padding:3px 9px'>"+dt+"h DT</span>";
+      chips.innerHTML=ch;
+    }
+  }
+}
+let sickTarget=null;
+function toggleSick(day,wid){
+  if(!dayData[day].workers[wid])dayData[day].workers[wid]={};
+  const cur=!!dayData[day].workers[wid].sick;
+  if(!cur){
+    sickTarget={day,wid};
+    const w=crew.find(x=>x.id===wid);
+    const di=DAYS.indexOf(day);
+    document.getElementById("sickModalTitle").textContent="Mark Sick Day - "+w.name;
+    document.getElementById("sickModalSub").textContent=day+" "+WD[di];
+    openModal("sickModal");
+  } else {
+    dayData[day].workers[wid].sick=false;
+    save();renderDayPanel();renderDayTabs();
+  }
+}
+function confirmSick(){
+  if(!sickTarget)return;
+  const{day,wid}=sickTarget;
+  if(!dayData[day].workers[wid])dayData[day].workers[wid]={};
+  const wd=dayData[day].workers[wid];
+  dayData[day].workers[wid]={sick:true,absent:false,stat:false,in:"",out:"",break:DEFAULT_BREAK,travel:"",notes:wd.notes||"",workerSig:null,workerSigTs:"",foremanSig:null,foremanSigTs:""};
+  save();closeModal("sickModal");renderDayPanel();renderDayTabs();toast("Marked sick");
+}
+
+let statTarget=null;
+function toggleStat(day,wid){
+  if(!dayData[day].workers[wid])dayData[day].workers[wid]={};
+  const cur=!!dayData[day].workers[wid].stat;
+  if(!cur){
+    statTarget={day,wid};
+    const w=crew.find(x=>x.id===wid);
+    const di=DAYS.indexOf(day);
+    document.getElementById("statModalTitle").textContent="Mark Stat Holiday - "+w.name;
+    document.getElementById("statModalSub").textContent=day+" "+WD[di];
+    openModal("statModal");
+  } else {
+    dayData[day].workers[wid].stat=false;
+    save();renderDayPanel();renderDayTabs();
+  }
+}
+function confirmStat(){
+  if(!statTarget)return;
+  const{day,wid}=statTarget;
+  if(!dayData[day].workers[wid])dayData[day].workers[wid]={};
+  const wd=dayData[day].workers[wid];
+  dayData[day].workers[wid]={stat:true,sick:false,absent:false,in:"",out:"",break:DEFAULT_BREAK,travel:"",notes:wd.notes||"",workerSig:null,workerSigTs:"",foremanSig:null,foremanSigTs:""};
+  save();closeModal("statModal");renderDayPanel();renderDayTabs();toast("Marked stat holiday");
+}
+function openAbsentModal(day,wid){
+  absentTarget={day,wid};
+  const w=crew.find(x=>x.id===wid),di=DAYS.indexOf(day);
+  document.getElementById("absentModalTitle").textContent="Mark Absent - "+w.name;
+  document.getElementById("absentModalSub").textContent=day+" "+WD[di];
+  document.getElementById("absentReason").value=dayData[day]?.workers?.[wid]?.absentReason||"";
+  openModal("absentModal");
+}
+function saveAbsent(){
+  if(!absentTarget)return;
+  const{day,wid}=absentTarget;
+  const reason=document.getElementById("absentReason").value.trim();
+  if(!dayData[day].workers[wid])dayData[day].workers[wid]={};
+  const wd=dayData[day].workers[wid];
+
+  dayData[day].workers[wid]={absent:true,absentReason:reason,sick:false,stat:false,in:"",out:"",break:DEFAULT_BREAK,travel:"",notes:wd.notes||"",workerSig:null,workerSigTs:"",foremanSig:null,foremanSigTs:""};
+  save();closeModal("absentModal");renderDayPanel();renderDayTabs();toast("Marked absent");
+}
+function undoAbsent(day,wid){
+  if(dayData[day].workers[wid]){dayData[day].workers[wid].absent=false;dayData[day].workers[wid].absentReason="";}
+  save();renderDayPanel();renderDayTabs();
+}
+
+// BREAK MODAL
+function openBreakModal(day,wid,current){
+  breakTarget={day,wid};
+  const w=crew.find(x=>x.id===wid);
+  document.getElementById("breakModalTitle").textContent="Break - "+w?.name;
+  document.getElementById("breakMins").value=current;
+  openModal("breakModal");
+}
+function saveBreak(){
+  if(!breakTarget)return;
+  const mins=Math.max(0,parseInt(document.getElementById("breakMins").value)||0);
+  const{day,wid}=breakTarget;
+  if(!dayData[day].workers[wid])dayData[day].workers[wid]={};
+  dayData[day].workers[wid].break=mins;
+  save();closeModal("breakModal");renderDayPanel();
+}
+
+// INCIDENT MODAL
+
+
+
+
+
+
+// SIGNATURES
+function startDaySig(wid,day,role){
+  sigTarget={wid,day,role};
+  const w=crew.find(x=>x.id===wid);
+  const wd=dayData[day]?.workers?.[wid]||{};
+  const brk=wd.break!==undefined?wd.break:DEFAULT_BREAK;
+  const hrs=calcHours(wd.in||"",wd.out||"",brk);
+  const ot=dayOT(hrs,day),reg=dayReg(hrs,day),dt=dayDT(hrs,day);
+  const di=DAYS.indexOf(day);
+  const dd=dayData[day];
+  document.getElementById("sigName").textContent=role==="foreman"?"Foreman - "+(w?.name||""):w?.name||"";
+  document.getElementById("sigSub").textContent=role==="foreman"?"Confirming "+w?.name+"'s hours for "+day+" "+WD[di]:"Confirming my hours for "+day+" "+WD[di];
+
+  const sigTravel=parseFloat(wd.travel)||0;
+  let sumHTML="<div style='font-size:13px;font-weight:700;margin-bottom:4px'>"+day+" "+WD[di]+"</div>";
+  if(dd?.jobsite)sumHTML+="<div style='font-size:11px;color:var(--muted);margin-bottom:"+(dd?.weather?"4px":"10px")+"'>"+esc(dd.jobsite)+"</div>";
+  if(dd?.weather)sumHTML+="<div style='font-size:11px;color:var(--muted);margin-bottom:10px'>"+wIcon(dd.weather)+" "+esc(dd.weather)+"</div>";
+  // Main grid - 4 boxes
+  const cols=sigTravel>0?"1fr 1fr 1fr 1fr 1fr":"1fr 1fr 1fr 1fr";
+  sumHTML+="<div style='display:grid;grid-template-columns:"+cols+";gap:6px;text-align:center;margin-bottom:8px'>";
+  sumHTML+="<div style='background:var(--surface2);border-radius:8px;padding:9px 4px'><div style='font-size:9px;color:var(--muted);margin-bottom:3px'>IN</div><div style='font-weight:700;font-size:13px'>"+(wd.in||"--")+"</div></div>";
+  sumHTML+="<div style='background:var(--surface2);border-radius:8px;padding:9px 4px'><div style='font-size:9px;color:var(--muted);margin-bottom:3px'>OUT</div><div style='font-weight:700;font-size:13px'>"+(wd.out||"--")+"</div></div>";
+  sumHTML+="<div style='background:var(--surface2);border-radius:8px;padding:9px 4px'><div style='font-size:9px;color:var(--muted);margin-bottom:3px'>BREAK</div><div style='font-weight:700;font-size:13px'>"+brk+"m</div></div>";
+  sumHTML+="<div style='background:"+(dt>0?"var(--dt-dim)":ot>0?"var(--orange-dim)":"var(--green-dim)")+";border:1px solid "+(dt>0?"var(--dt)":ot>0?"var(--orange)":"var(--green)")+";border-radius:8px;padding:9px 4px'><div style='font-size:9px;color:var(--muted);margin-bottom:3px'>HOURS</div><div style='font-weight:800;font-size:13px;color:"+(dt>0?"var(--dt)":ot>0?"var(--ot)":"var(--green)")+"'>"+hrs+"h</div></div>";
+  if(sigTravel>0)sumHTML+="<div style='background:var(--blue-dim);border:1px solid var(--blue);border-radius:8px;padding:9px 4px'><div style='font-size:9px;color:var(--muted);margin-bottom:3px'>TRAVEL</div><div style='font-weight:800;font-size:13px;color:var(--blue)'>"+sigTravel+"h</div></div>";
+  sumHTML+="</div>";
+  if(ot>0||reg>0||dt>0)sumHTML+="<div style='display:flex;gap:8px;flex-wrap:wrap'><span style='font-size:12px;font-weight:700;color:var(--green);background:var(--green-dim);border-radius:6px;padding:3px 9px'>"+reg+"h reg</span>"+(ot>0?"<span style='font-size:12px;font-weight:700;color:var(--ot);background:var(--orange-dim);border-radius:6px;padding:3px 9px'>"+ot+"h OT</span>":"")+(dt>0?"<span style='font-size:12px;font-weight:700;color:var(--dt);background:var(--dt-dim);border-radius:6px;padding:3px 9px'>"+dt+"h DT</span>":"")+"</div>";
+  document.getElementById("sigHoursSummary").innerHTML=sumHTML;
+  openModal("sigModal");setTimeout(initSigCanvas,60);
+}
+function initSigCanvas(){
+  const c=document.getElementById("sigCanvas");
+  const r=c.getBoundingClientRect();
+  c.width=Math.round(r.width)*2;c.height=320;c.style.height="160px";
+  sigCtx=c.getContext("2d");sigCtx.scale(2,2);
+  sigCtx.strokeStyle="#111";sigCtx.lineWidth=2.5;sigCtx.lineCap="round";sigCtx.lineJoin="round";
+  sigCtx.fillStyle="#fff";sigCtx.fillRect(0,0,c.width,c.height);
+  sigDrawing=false;
+  c.onpointerdown=e=>{sigDrawing=true;sigCtx.beginPath();const p=cp(c,e);sigCtx.moveTo(p.x,p.y);try{c.setPointerCapture(e.pointerId);}catch(err){}};
+  c.onpointermove=e=>{if(!sigDrawing)return;const p=cp(c,e);sigCtx.lineTo(p.x,p.y);sigCtx.stroke();};
+  const endStroke=e=>{sigDrawing=false;try{if(e&&e.pointerId!==undefined)c.releasePointerCapture(e.pointerId);}catch(err){}};
+  c.onpointerup=endStroke;
+  c.onpointercancel=endStroke;
+  c.onpointerleave=e=>{if(sigDrawing)endStroke(e);};
+}
+function cp(c,e){const r=c.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top};}
+function clearSigCanvas(){initSigCanvas();}
+function saveSig(){
+  if(!sigTarget)return;
+  try{
+    const data=document.getElementById("sigCanvas").toDataURL("image/png");
+    const{wid,day,role}=sigTarget;
+    if(!dayData[day].workers[wid])dayData[day].workers[wid]={};
+    const ts=tsNow();
+    if(role==="worker"){dayData[day].workers[wid].workerSig=data;dayData[day].workers[wid].workerSigTs=ts;}
+    else{dayData[day].workers[wid].foremanSig=data;dayData[day].workers[wid].foremanSigTs=ts;}
+    save();closeModal("sigModal");renderDayPanel();
+    toast(role==="foreman"?"Foreman confirmed":"Signature saved");
+  }catch(err){
+    toast("Couldn't save signature: "+err.message,4000);
+  }
+}
+function clearDaySig(day,wid,role){
+  if(dayData[day].workers[wid]){
+    if(role==="worker"){delete dayData[day].workers[wid].workerSig;delete dayData[day].workers[wid].workerSigTs;}
+    else{delete dayData[day].workers[wid].foremanSig;delete dayData[day].workers[wid].foremanSigTs;}
+  }
+  save();renderDayPanel();
+}
+
+// FOREMAN - SIGN OFF WHOLE WEEK (OR A SINGLE DAY) AT ONCE
+// Returns every {day,wid} entry that actually has worked hours recorded
+// (i.e. not sick/absent/stat, and has a time-in), regardless of current foreman-sign state.
+// If dayFilter is passed, scopes to just that one day.
+let signAllDayFilter=null;
+function getSignableWeekEntries(dayFilter){
+  const entries=[];
+  const days=dayFilter?[dayFilter]:DAYS;
+  days.forEach(d=>{
+    crew.forEach(w=>{
+      const wd=dayData[d]?.workers?.[w.id];
+      if(wd&&!wd.sick&&!wd.absent&&!wd.stat&&wd.in&&wd.out){
+        entries.push({day:d,wid:w.id,name:w.name,alreadySigned:!!wd.foremanSig});
+      }
+    });
+  });
+  return entries;
+}
+function openSignAllModal(dayFilter){
+  signAllDayFilter=dayFilter||null;
+  const entries=getSignableWeekEntries(signAllDayFilter);
+  const pending=entries.filter(e=>!e.alreadySigned);
+  document.getElementById("sigAllTitle")?.remove();
+  const titleEl=document.querySelector("#signAllModal .sig-header h2");
+  if(titleEl)titleEl.textContent=signAllDayFilter?"Foreman - Sign Off "+signAllDayFilter:"Foreman - Sign Off Whole Week";
+  document.getElementById("signAllSub").textContent=signAllDayFilter?signAllDayFilter+" "+WD[DAYS.indexOf(signAllDayFilter)]:"Week of "+WD[0]+" - "+WD[6];
+  if(!entries.length){
+    document.getElementById("signAllSummary").innerHTML=signAllDayFilter?"No worked hours recorded for "+signAllDayFilter+" yet - nothing to sign off on.":"No worked days recorded yet this week - nothing to sign off on.";
+  } else {
+    let html="<div style='margin-bottom:6px'><strong>"+entries.length+"</strong> "+(signAllDayFilter?"worker entries recorded for this day.":"day/worker entries recorded this week.")+"</div>";
+    html+="<div style='color:"+(pending.length?"var(--ot)":"var(--green)")+"'>"+(pending.length?pending.length+" still need foreman sign-off":"All already signed - signing again will refresh the timestamp")+"</div>";
+    html+="<div style='margin-top:8px;display:flex;flex-direction:column;gap:3px;max-height:120px;overflow-y:auto'>";
+    entries.forEach(e=>{
+      html+="<div style='display:flex;justify-content:space-between;gap:8px'><span>"+esc(e.name)+(signAllDayFilter?"":" - "+e.day)+"</span><span style='color:"+(e.alreadySigned?"var(--green)":"var(--muted)")+"'>"+(e.alreadySigned?"Signed":"Pending")+"</span></div>";
+    });
+    html+="</div>";
+    document.getElementById("signAllSummary").innerHTML=html;
+  }
+  openModal("signAllModal");
+  setTimeout(initSignAllCanvas,60);
+}
+let signAllCtx=null,signAllDrawing=false;
+function initSignAllCanvas(){
+  const c=document.getElementById("signAllCanvas");
+  const r=c.getBoundingClientRect();
+  c.width=Math.round(r.width)*2;c.height=320;c.style.height="160px";
+  signAllCtx=c.getContext("2d");signAllCtx.scale(2,2);
+  signAllCtx.strokeStyle="#111";signAllCtx.lineWidth=2.5;signAllCtx.lineCap="round";signAllCtx.lineJoin="round";
+  signAllCtx.fillStyle="#fff";signAllCtx.fillRect(0,0,c.width,c.height);
+  signAllDrawing=false;
+  c.onpointerdown=e=>{signAllDrawing=true;signAllCtx.beginPath();const p=cp(c,e);signAllCtx.moveTo(p.x,p.y);try{c.setPointerCapture(e.pointerId);}catch(err){}};
+  c.onpointermove=e=>{if(!signAllDrawing)return;const p=cp(c,e);signAllCtx.lineTo(p.x,p.y);signAllCtx.stroke();};
+  const endStroke=e=>{signAllDrawing=false;try{if(e&&e.pointerId!==undefined)c.releasePointerCapture(e.pointerId);}catch(err){}};
+  c.onpointerup=endStroke;
+  c.onpointercancel=endStroke;
+  c.onpointerleave=e=>{if(signAllDrawing)endStroke(e);};
+}
+function clearSignAllCanvas(){initSignAllCanvas();}
+function saveSignAll(){
+  const entries=getSignableWeekEntries(signAllDayFilter);
+  if(!entries.length){toast("Nothing to sign"+(signAllDayFilter?" for "+signAllDayFilter:" this week"));closeModal("signAllModal");return;}
+  try{
+    const data=document.getElementById("signAllCanvas").toDataURL("image/png");
+    const ts=tsNow();
+    entries.forEach(e=>{
+      if(!dayData[e.day].workers[e.wid])dayData[e.day].workers[e.wid]={};
+      dayData[e.day].workers[e.wid].foremanSig=data;
+      dayData[e.day].workers[e.wid].foremanSigTs=ts;
+    });
+    save();closeModal("signAllModal");renderDayPanel();renderDayTabs();
+    toast("Foreman signed off "+entries.length+" entries"+(signAllDayFilter?" for "+signAllDayFilter:" for the week"));
+  }catch(err){
+    toast("Couldn't save signature: "+err.message,4000);
+  }
+}
+
+// SICK BANK
+function openSickBank(wid){
+  sickBankId=wid;
+  const w=crew.find(x=>x.id===wid);
+  document.getElementById("sickBankSub").textContent=w.name+" - annual sick pay settings";
+  document.getElementById("sbAllowance").value=w.sickAllowance||40;
+  document.getElementById("sbUsed").value=w.sickUsedPrior||0;
+  openModal("sickBankModal");
+}
+function saveSickBank(){
+  if(!sickBankId)return;
+  const allow=Math.max(0,parseInt(document.getElementById("sbAllowance").value)||0);
+  const used=Math.max(0,parseInt(document.getElementById("sbUsed").value)||0);
+  crew=crew.map(w=>w.id===sickBankId?{...w,sickAllowance:allow,sickUsedPrior:used}:w);
+  save();closeModal("sickBankModal");renderManage();toast("Sick bank updated");
+}
+
+// MANAGE
+function renderManage(){
+  const el=document.getElementById("crewCards");
+  if(!crew.length){el.innerHTML="<div class='empty'>No crew yet. Add workers above.</div>";return;}
+  el.innerHTML=crew.map((w,idx)=>{
+    const tot=totalAllPaidHrs(w),sickWk=totalSickHrsWeek(w),ot=totalDailyOT(w),dt=totalDailyDT(w);
+    const rem=sickRemaining(w),used=sickUsedTotal(w);
+    const pct=w.sickAllowance>0?Math.min(100,Math.round(used/w.sickAllowance*100)):0;
+    const bc=rem<=8?"var(--red)":rem<=16?"var(--ot)":"var(--green)";
+    const isFirst=idx===0,isLast=idx===crew.length-1;
+    const upBtn="<button class='btn btn-ghost btn-sm' onclick='moveWorker("+w.id+",-1)' style='padding:5px 8px;font-size:13px;"+(isFirst?"opacity:.3;pointer-events:none":"")+"'>↑</button>";
+    const dnBtn="<button class='btn btn-ghost btn-sm' onclick='moveWorker("+w.id+",1)' style='padding:5px 8px;font-size:13px;"+(isLast?"opacity:.3;pointer-events:none":"")+"'>↓</button>";
+    if(editingId===w.id)return "<div class='crew-card'><div style='display:flex;gap:8px;flex-wrap:wrap;width:100%'><input type='text' id='en-"+w.id+"' value='"+esc(w.name)+"' style='flex:1;min-width:110px'><input type='text' id='er-"+w.id+"' value='"+esc(w.role)+"' style='flex:1;min-width:100px'><input type='tel' id='ep-"+w.id+"' value='"+esc(w.phone||"")+"' placeholder='Phone' style='flex:1;min-width:100px'><button class='btn btn-green btn-sm' onclick='saveEdit("+w.id+")'>Save</button><button class='btn btn-ghost btn-sm' onclick='editingId=null;renderManage()'>Cancel</button></div></div>";
+    return "<div class='crew-card'><div class='cc-top'><div style='display:flex;flex-direction:column;gap:2px;margin-right:4px'>"+upBtn+dnBtn+"</div><div class='cc-info'><div class='cc-name'>"+esc(w.name)+"</div><div class='cc-role'>"+esc(w.role)+(w.phone?" &middot; <a href='tel:"+esc(w.phone)+"' style='color:var(--blue);text-decoration:none'>"+esc(w.phone)+"</a>":"")+"</div><div class='sick-bank'><div class='sick-bank-bar'><div class='sick-bank-fill' style='width:"+pct+"%;background:"+bc+"'></div></div><div style='font-size:10px;color:"+bc+";white-space:nowrap'>"+rem+"h sick left</div><button class='btn btn-ghost btn-sm' onclick='openSickBank("+w.id+")' style='padding:2px 7px;font-size:10px'>Edit</button></div></div><div style='text-align:right'><div style='color:var(--ot);font-weight:700;font-size:13px'>"+tot+"h</div>"+(ot>0?"<div style='font-size:10px;color:var(--ot)'>"+ot+"h OT</div>":"")+(dt>0?"<div style='font-size:10px;color:var(--dt)'>"+dt+"h DT</div>":"")+(sickWk>0?"<div style='font-size:10px;color:var(--red)'>"+sickWk+"h sick</div>":"")+"</div><div class='cc-actions'><button class='btn btn-ghost btn-sm' onclick='editingId="+w.id+";renderManage()'>Edit</button><button class='btn btn-red btn-sm' onclick='removeWorker("+w.id+")'>Remove</button></div></div></div>";
+  }).join("");
+}
+function moveWorker(id,dir){
+  const idx=crew.findIndex(w=>w.id===id);
+  if(idx===-1)return;
+  const newIdx=idx+dir;
+  if(newIdx<0||newIdx>=crew.length)return;
+  const tmp=crew[idx];crew[idx]=crew[newIdx];crew[newIdx]=tmp;
+  save();renderManage();
+}
+function addWorker(){
+  const name=document.getElementById("newName").value.trim();
+  const role=document.getElementById("newRole").value.trim()||"Laborer";
+  const phone=document.getElementById("newPhone").value.trim();
+  if(!name)return;
+  crew.push({id:Date.now(),name,role,phone,sickAllowance:40,sickUsedPrior:0});
+  document.getElementById("newName").value="";document.getElementById("newRole").value="";document.getElementById("newPhone").value="";
+  save();renderManage();toast(name+" added");
+}
+function removeWorker(id){
+  if(!confirm("Remove this worker?"))return;
+  crew=crew.filter(w=>w.id!==id);save();renderManage();
+}
+function saveEdit(id){
+  const name=document.getElementById("en-"+id).value.trim();
+  const role=document.getElementById("er-"+id).value.trim();
+  const phone=document.getElementById("ep-"+id).value.trim();
+  if(name)crew=crew.map(w=>w.id===id?{...w,name,role:role||w.role,phone}:w);
+  editingId=null;save();renderManage();
+}
+
+// CSV EXPORT
+function parseCSVLine(line){
+  // Simple CSV parser handling quoted fields
+  const result=[];
+  let cur="",inQuotes=false;
+  for(let i=0;i<line.length;i++){
+    const ch=line[i];
+    if(inQuotes){
+      if(ch==='"'){
+        if(line[i+1]==='"'){cur+='"';i++;}
+        else{inQuotes=false;}
+      } else cur+=ch;
+    } else {
+      if(ch==='"')inQuotes=true;
+      else if(ch===','){result.push(cur);cur="";}
+      else cur+=ch;
+    }
+  }
+  result.push(cur);
+  return result;
+}
+
+function runImportCSV(){
+  const fileInput=document.getElementById("importFileInput");
+  const statusEl=document.getElementById("importStatus");
+  const file=fileInput.files[0];
+  if(!file){statusEl.textContent="Please choose a CSV file first.";statusEl.style.color="var(--red)";return;}
+  const reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      let text=e.target.result;
+      // Strip BOM if present
+      if(text.charCodeAt(0)===0xFEFF)text=text.slice(1);
+      const lines=text.split(/\r?\n/).map(l=>l.trim()).filter(l=>l.length>0);
+      const rows=lines.map(parseCSVLine);
+
+      // Find "WORKER HOURS DETAIL" section
+      const detailIdx=rows.findIndex(r=>r[0]==="WORKER HOURS DETAIL");
+      if(detailIdx===-1){
+        statusEl.textContent="Could not find worker hours data in this CSV. Make sure it was exported from this app.";
+        statusEl.style.color="var(--red)";
+        return;
+      }
+
+      let importedWorkers=0;
+      let i=detailIdx+1;
+      while(i<rows.length){
+        const row=rows[i];
+        // A worker name row is 3 columns: name, role, phone (and not a known section header)
+        if(row.length>=2 && row[0] && row[0]!=="Day" && !row[0].startsWith("Total")){
+          const name=row[0],role=row[1]||"Laborer",phone=row[2]||"";
+          // Find or create worker
+          let w=crew.find(x=>x.name.toLowerCase()===name.toLowerCase());
+          if(!w){
+            w={id:Date.now()+Math.floor(Math.random()*1000),name,role,phone,sickAllowance:40,sickUsedPrior:0};
+            crew.push(w);
+          }
+          i++; // move to "Total Hrs..." summary row, skip it
+          if(rows[i] && rows[i][0]==="Total Hrs")i++;
+          // Next should be the day-row header
+          if(rows[i] && rows[i][0]==="Day")i++;
+          // Now read up to 7 day rows
+          let daysRead=0;
+          while(i<rows.length && daysRead<7){
+            const dr=rows[i];
+            if(!dr[0] || !DAYS.includes(dr[0]))break;
+            const day=dr[0];
+            // Columns: Day,Date,Jobsite,Status,In,Out,Break,Travel,Reg,OT,Total,Notes,WorkerSigned,WorkerSignTime,ForemanSigned,ForemanSignTime
+            const jobsite=dr[2]||"";
+            const status=(dr[3]||"").toUpperCase();
+            const timeIn=dr[4]||"";
+            const timeOut=dr[5]||"";
+            const breakStr=dr[6]||"";
+            const breakMins=breakStr?parseInt(breakStr):DEFAULT_BREAK;
+            const travel=dr[7]||"";
+            const notes=dr[11]||"";
+
+            if(!dayData[day])dayData[day]={jobsite:"",weather:"",notes:"",workers:{}};
+            if(jobsite)dayData[day].jobsite=jobsite;
+
+            const entry={in:"",out:"",break:DEFAULT_BREAK,travel:"",notes:notes,sick:false,absent:false,stat:false};
+            if(status.indexOf("SICK")===0){
+              entry.sick=true;
+            } else if(status.indexOf("STAT")===0){
+              entry.stat=true;
+            } else if(status.indexOf("ABSENT")===0){
+              entry.absent=true;
+              const m=status.match(/\((.+)\)/);
+              if(m)entry.absentReason=m[1];
+            } else {
+              entry.in=timeIn;
+              entry.out=timeOut;
+              entry.break=isNaN(breakMins)?DEFAULT_BREAK:breakMins;
+              entry.travel=travel;
+            }
+            dayData[day].workers[w.id]=entry;
+            daysRead++;
+            i++;
+          }
+          importedWorkers++;
+        } else {
+          i++;
+        }
+      }
+
+      crew.forEach(w=>{
+        if(w.sickAllowance===undefined)w.sickAllowance=40;
+        if(w.sickUsedPrior===undefined)w.sickUsedPrior=0;
+        if(!w.phone)w.phone="";
+      });
+
+      save();
+      render();
+      statusEl.textContent="Imported "+importedWorkers+" worker(s) successfully.";
+      statusEl.style.color="var(--green)";
+      toast("CSV imported");
+      setTimeout(()=>closeModal("importModal"),1200);
+    }catch(err){
+      statusEl.textContent="Could not read this file. Make sure it's a CSV exported from this app.";
+      statusEl.style.color="var(--red)";
+    }
+  };
+  reader.readAsText(file);
+}
+
+function exportCSV(){
+  const rows=[];
+  const BOM="\uFEFF";
+
+  // ── SECTION 1: PAYROLL SUMMARY ──
+  rows.push(["HOURS SHEET - PAYROLL SUMMARY"]);
+  rows.push(["Week",WEEK_LABEL]);
+  rows.push(["Generated",new Date().toLocaleString()]);
+  rows.push([]);
+  rows.push(["WORKER","ROLE","REGULAR HRS","OVERTIME HRS","DOUBLE TIME HRS","TRAVEL HRS","TOTAL HRS (incl. travel)","SICK PAY HRS","STAT PAY HRS","ABSENT DAYS","SICK BANK REMAINING","ALL SIGNED"]);
+  crew.forEach(w=>{
+    const worked=totalWorkedHrs(w),ot=totalDailyOT(w),dtWk=totalDailyDT(w),reg=Math.round((worked-ot-dtWk)*100)/100;
+    const trav=totalTravelHrs(w);
+    const sickH=totalSickHrsWeek(w),statH=totalStatHrsWeek(w),rem=sickRemaining(w);
+    const tot=Math.round((worked+trav+sickH+statH)*100)/100; // total includes travel+sick+stat
+    const absDays=DAYS.filter(d=>dayData[d]?.workers?.[w.id]?.absent).length;
+    const allSig=DAYS.every(d=>{
+      const wd=dayData[d]?.workers?.[w.id];
+      return !wd||wd.sick||wd.absent||wd.stat||!wd.in||(wd.workerSig&&wd.foremanSig);
+    })?"YES":"PENDING";
+    rows.push([w.name,w.role,reg,ot||"",dtWk||"",trav||"",tot,sickH||"",statH||"",absDays||"",rem,allSig]);
+  });
+  rows.push([]);
+
+  // Absences in summary
+  const absDays=DAYS.filter(d=>crew.some(w=>dayData[d]?.workers?.[w.id]?.absent));
+  if(absDays.length){
+    rows.push(["ABSENCES"]);
+    rows.push(["Day","Date","Worker","Reason"]);
+    absDays.forEach(d=>{
+      crew.forEach(w=>{
+        const wd=dayData[d]?.workers?.[w.id];
+        if(wd?.absent)rows.push([d,WD[DAYS.indexOf(d)],w.name,wd.absentReason||""]);
+      });
+    });
+    rows.push([]);
+  }
+
+  // Stat holidays in summary
+  const statDays=DAYS.filter(d=>crew.some(w=>dayData[d]?.workers?.[w.id]?.stat));
+  if(statDays.length){
+    rows.push(["STAT HOLIDAYS"]);
+    rows.push(["Day","Date","Worker","Stat Pay Hrs"]);
+    statDays.forEach(d=>{
+      crew.forEach(w=>{
+        const wd=dayData[d]?.workers?.[w.id];
+        if(wd?.stat)rows.push([d,WD[DAYS.indexOf(d)],w.name,STAT_HRS]);
+      });
+    });
+    rows.push([]);
+  }
+
+  // ── SECTION 2: DAY LOG ──
+  rows.push(["DAY LOG"]);
+  rows.push(["Day","Date","Jobsite","Weather","Total Worked Hrs","Overtime Hrs","Double Time Hrs","Sick Workers","Stat Workers","Absent Workers","Notes"]);
+  DAYS.forEach((d,i)=>{
+    const dd=dayData[d]||{};
+    const dh=Math.round(crew.reduce((s,w)=>{const wd=dd.workers?.[w.id];return s+((!wd||wd.sick||wd.absent||wd.stat)?0:calcHours(wd.in||"",wd.out||"",wd.break!==undefined?wd.break:DEFAULT_BREAK));},0)*100)/100;
+    const dot=Math.round(crew.reduce((s,w)=>{const wd=dd.workers?.[w.id];if(!wd||wd.sick||wd.absent||wd.stat)return s;const h=calcHours(wd.in||"",wd.out||"",wd.break!==undefined?wd.break:DEFAULT_BREAK);return s+dayOT(h,d);},0)*100)/100;
+    const ddt=Math.round(crew.reduce((s,w)=>{const wd=dd.workers?.[w.id];if(!wd||wd.sick||wd.absent||wd.stat)return s;const h=calcHours(wd.in||"",wd.out||"",wd.break!==undefined?wd.break:DEFAULT_BREAK);return s+dayDT(h,d);},0)*100)/100;
+    const ds=crew.filter(w=>dd.workers?.[w.id]?.sick).length;
+    const dst=crew.filter(w=>dd.workers?.[w.id]?.stat).length;
+    const da=crew.filter(w=>dd.workers?.[w.id]?.absent).length;
+    rows.push([d,WD[i],dd.jobsite||"",dd.weather||"",dh||"",dot||"",ddt||"",ds||"",dst||"",da||"",dd.notes||""]);
+  });
+  rows.push([]);
+
+  // ── SECTION 3: WORKER DETAIL - vertical per worker ──
+  rows.push(["WORKER HOURS DETAIL"]);
+  rows.push([]);
+  crew.forEach(w=>{
+    const worked=totalWorkedHrs(w),ot=totalDailyOT(w),dtWk=totalDailyDT(w),reg=Math.round((worked-ot-dtWk)*100)/100;
+    const trav=totalTravelHrs(w);
+    const sickH=totalSickHrsWeek(w),statH=totalStatHrsWeek(w),absDays=DAYS.filter(d=>dayData[d]?.workers?.[w.id]?.absent).length;
+    const tot=Math.round((worked+trav+sickH+statH)*100)/100; // total includes travel+sick+stat
+    rows.push([w.name,w.role,w.phone||""]);
+    const wtrav=totalTravelHrs(w);
+    rows.push(["Total Hrs",tot+"h","Regular",reg+"h","Overtime",ot>0?ot+"h":"None","Double Time",dtWk>0?dtWk+"h":"None","Travel",wtrav>0?wtrav+"h":"None","Sick Pay",sickH>0?sickH+"h":"None","Stat Pay",statH>0?statH+"h":"None","Absent Days",absDays||"None"]);
+    // NOTE: DT Hrs is appended as the LAST column (after Foreman Sign Time) so existing column
+    // indices used by the CSV importer (jobsite/status/in/out/break/travel/notes) stay stable.
+    rows.push(["Day","Date","Jobsite","Status","Time In","Time Out","Break","Travel Hrs","Regular Hrs","OT Hrs","Total Hrs","Notes","Worker Signed","Worker Sign Time","Foreman Signed","Foreman Sign Time","DT Hrs"]);
+    DAYS.forEach((d,i)=>{
+      const wd=dayData[d]?.workers?.[w.id]||{};
+      const dd=dayData[d]||{};
+      const brk=wd.break!==undefined?wd.break:DEFAULT_BREAK;
+      const isSick=!!wd.sick,isAbsent=!!wd.absent,isStat=!!wd.stat;
+      const skip=isSick||isAbsent||isStat;
+      const h=isSick?SICK_HRS:isStat?STAT_HRS:(isAbsent?0:calcHours(wd.in||"",wd.out||"",brk));
+      let status=isSick?"SICK DAY":isStat?"STAT HOLIDAY":isAbsent?"ABSENT"+(wd.absentReason?" ("+wd.absentReason+")":""):h>0?"":"Not recorded";
+      const travelDay=!skip?parseFloat(wd.travel)||0:0;
+      const workedD=!skip?dayWorkedOnly(wd):0;
+      const regD=skip?0:dayReg(workedD,d),otD=skip?0:dayOT(workedD,d),dtD=skip?0:dayDT(workedD,d);
+      if(!skip&&h>0)status=dtD>0?"Worked - DT":otD>0?"Worked - OT":"Worked";
+      rows.push([
+        d,WD[i],dd.jobsite||"",status,
+        skip?"":wd.in||"",
+        skip?"":wd.out||"",
+        skip?"":brk+"min",
+        travelDay||"",
+        regD||"",otD||"",h||"",
+        wd.notes||"",
+        skip?"N/A":wd.workerSig?"SIGNED":"NOT SIGNED",
+        skip?"":wd.workerSigTs||"",
+        skip?"N/A":wd.foremanSig?"SIGNED":"NOT SIGNED",
+        skip?"":wd.foremanSigTs||"",
+        dtD||""
+      ]);
+    });
+    rows.push([]);
+  });
+
+  const csv=BOM+rows.map(r=>r.map(c=>'"'+String(c==null?"":c).replace(/"/g,'""')+'"').join(",")).join("\r\n");
+  const blob=new Blob([csv],{type:"text/csv;charset=utf-8;"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");a.href=url;
+  a.download="hours-sheet-"+WEEK_LABEL.replace(/[^a-zA-Z0-9]/g,"-")+".csv";
+  document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
+  toast("CSV downloaded");
+}
+
+function render(){
+  if(activeTab==="hours"){renderDayTabs();renderDayPanel();}
+  else if(activeTab==="manage"){renderManage();}
+}
+
+// ── BIWEEKLY EXPORT ──
+// Finds every week that has stored data, sorted oldest to newest, as Date objects (week-start Sundays)
+function listStoredWeeks(){
+  const weeks=[];
+  for(let i=0;i<localStorage.length;i++){
+    const k=localStorage.key(i);
+    if(k&&k.indexOf("hs4_days_")===0){
+      const dateStr=k.slice("hs4_days_".length);
+      const d=new Date(dateStr+"T00:00:00");
+      if(!isNaN(d.getTime()))weeks.push(d);
+    }
+  }
+  // Always include the current week even if nothing's been entered yet
+  if(!weeks.some(d=>weekKey(d)===weekKey(TODAY_WEEK_START)))weeks.push(new Date(TODAY_WEEK_START));
+  weeks.sort((a,b)=>a.getTime()-b.getTime());
+  return weeks;
+}
+
+function openBiweeklyModal(){
+  const weeks=listStoredWeeks();
+  const sel1=document.getElementById("biweeklyWeek1Select");
+  const sel2=document.getElementById("biweeklyWeek2Select");
+  const opts=weeks.map(d=>{
+    const wd=getWeekDatesFrom(d);
+    const label=wd[0]+" - "+wd[6]+(weekKey(d)===weekKey(TODAY_WEEK_START)?" (Current)":"");
+    return "<option value='"+weekKey(d)+"'>"+label+"</option>";
+  }).join("");
+  sel1.innerHTML=opts;
+  sel2.innerHTML=opts;
+  // Default to the two most recent weeks
+  if(weeks.length>=2){
+    sel1.value=weekKey(weeks[weeks.length-2]);
+    sel2.value=weekKey(weeks[weeks.length-1]);
+  } else if(weeks.length===1){
+    sel1.value=weekKey(weeks[0]);
+    sel2.value=weekKey(weeks[0]);
+  }
+  closeModal("exportModal");
+  openModal("biweeklyModal");
+}
+
+// Loads raw stored data for a given week-start Date, without touching the live viewing state
+function loadWeekSnapshot(weekStartDate){
+  const key="hs4_days_"+weekKey(weekStartDate);
+  const dd=JSON.parse(localStorage.getItem(key)||"{}");
+  DAYS.forEach(d=>{ if(!dd[d])dd[d]={jobsite:"",weather:"",notes:"",workers:{}}; });
+  const wd=getWeekDatesFrom(weekStartDate);
+  return {dayData:dd, WD:wd, label:wd[0]+" to "+wd[6]};
+}
+
+// Per-worker stat calc against an arbitrary dayData/WD snapshot (mirrors the live calc functions)
+function snapTotalWorkedHrs(w,dd){
+  return Math.round(DAYS.reduce((s,d)=>{
+    const wd2=dd[d]?.workers?.[w.id];
+    if(!wd2||wd2.sick||wd2.absent||wd2.stat)return s;
+    const brk=wd2.break!==undefined?wd2.break:DEFAULT_BREAK;
+    return s+calcHours(wd2.in||"",wd2.out||"",brk);
+  },0)*100)/100;
+}
+function snapTotalDailyOT(w,dd){
+  return Math.round(DAYS.reduce((s,d)=>{
+    const wd2=dd[d]?.workers?.[w.id];
+    if(!wd2||wd2.sick||wd2.absent||wd2.stat)return s;
+    const brk=wd2.break!==undefined?wd2.break:DEFAULT_BREAK;
+    const h=calcHours(wd2.in||"",wd2.out||"",brk);
+    return s+dayOT(h,d);
+  },0)*100)/100;
+}
+function snapTotalDailyDT(w,dd){
+  return Math.round(DAYS.reduce((s,d)=>{
+    const wd2=dd[d]?.workers?.[w.id];
+    if(!wd2||wd2.sick||wd2.absent||wd2.stat)return s;
+    const brk=wd2.break!==undefined?wd2.break:DEFAULT_BREAK;
+    const h=calcHours(wd2.in||"",wd2.out||"",brk);
+    return s+dayDT(h,d);
+  },0)*100)/100;
+}
+function snapTotalTravelHrs(w,dd){
+  return Math.round(DAYS.reduce((s,d)=>{
+    const wd2=dd[d]?.workers?.[w.id];
+    if(!wd2||wd2.sick||wd2.absent||wd2.stat)return s;
+    return s+(parseFloat(wd2.travel)||0);
+  },0)*100)/100;
+}
+function snapTotalSickHrs(w,dd){return DAYS.filter(d=>dd[d]?.workers?.[w.id]?.sick).length*SICK_HRS;}
+function snapTotalStatHrs(w,dd){return DAYS.filter(d=>dd[d]?.workers?.[w.id]?.stat).length*STAT_HRS;}
+
+function getBiweeklyWeeks(){
+  const v1=document.getElementById("biweeklyWeek1Select").value;
+  const v2=document.getElementById("biweeklyWeek2Select").value;
+  if(!v1||!v2){toast("Pick both weeks first");return null;}
+  if(v1===v2){toast("Pick two different weeks");return null;}
+  let d1=new Date(v1+"T00:00:00"),d2=new Date(v2+"T00:00:00");
+  // Always export in chronological order regardless of dropdown order
+  if(d1.getTime()>d2.getTime()){const tmp=d1;d1=d2;d2=tmp;}
+  return [loadWeekSnapshot(d1), loadWeekSnapshot(d2)];
+}
+
+function generateBiweeklyCSV(weeks){
+  const [w1,w2]=weeks;
+  const rows=[];
+  const BOM="\uFEFF";
+  const combinedLabel=w1.WD[0]+" to "+w2.WD[6];
+
+  rows.push(["HOURS SHEET - BIWEEKLY PAYROLL SUMMARY"]);
+  rows.push(["Pay Period",combinedLabel]);
+  rows.push(["Week 1",w1.label]);
+  rows.push(["Week 2",w2.label]);
+  rows.push(["Generated",new Date().toLocaleString()]);
+  rows.push([]);
+
+  // Combined payroll summary (sum of both weeks)
+  rows.push(["WORKER","ROLE","REGULAR HRS","OVERTIME HRS","DOUBLE TIME HRS","TRAVEL HRS","TOTAL HRS (incl. travel)","SICK PAY HRS","STAT PAY HRS","ABSENT DAYS"]);
+  crew.forEach(w=>{
+    const worked1=snapTotalWorkedHrs(w,w1.dayData),worked2=snapTotalWorkedHrs(w,w2.dayData);
+    const ot1=snapTotalDailyOT(w,w1.dayData),ot2=snapTotalDailyOT(w,w2.dayData);
+    const dt1=snapTotalDailyDT(w,w1.dayData),dt2=snapTotalDailyDT(w,w2.dayData);
+    const trav1=snapTotalTravelHrs(w,w1.dayData),trav2=snapTotalTravelHrs(w,w2.dayData);
+    const sick1=snapTotalSickHrs(w,w1.dayData),sick2=snapTotalSickHrs(w,w2.dayData);
+    const stat1=snapTotalStatHrs(w,w1.dayData),stat2=snapTotalStatHrs(w,w2.dayData);
+    const abs1=DAYS.filter(d=>w1.dayData[d]?.workers?.[w.id]?.absent).length;
+    const abs2=DAYS.filter(d=>w2.dayData[d]?.workers?.[w.id]?.absent).length;
+    const workedAll=Math.round((worked1+worked2)*100)/100,ot=Math.round((ot1+ot2)*100)/100,dtAll=Math.round((dt1+dt2)*100)/100;
+    const trav=Math.round((trav1+trav2)*100)/100;
+    const tot=Math.round((workedAll+trav)*100)/100; // total includes travel
+    const reg=Math.round((workedAll-ot-dtAll)*100)/100;
+    const sick=sick1+sick2,stat=stat1+stat2,abs=abs1+abs2;
+    rows.push([w.name,w.role,reg,ot||"",dtAll||"",trav||"",tot,sick||"",stat||"",abs||""]);
+  });
+  rows.push([]);
+
+  // Per-week breakdown for each worker
+  rows.push(["PER-WEEK BREAKDOWN"]);
+  rows.push([]);
+  [w1,w2].forEach((wk,idx)=>{
+    rows.push(["WEEK "+(idx+1)+" — "+wk.label]);
+    rows.push(["Worker","Regular Hrs","Overtime Hrs","Double Time Hrs","Travel Hrs","Total Hrs","Sick Pay Hrs","Stat Pay Hrs","Absent Days"]);
+    crew.forEach(w=>{
+      const tot=snapTotalWorkedHrs(w,wk.dayData),ot=snapTotalDailyOT(w,wk.dayData),dtWk=snapTotalDailyDT(w,wk.dayData);
+      const reg=Math.round((tot-ot-dtWk)*100)/100,trav=snapTotalTravelHrs(w,wk.dayData);
+      const sick=snapTotalSickHrs(w,wk.dayData),stat=snapTotalStatHrs(w,wk.dayData);
+      const abs=DAYS.filter(d=>wk.dayData[d]?.workers?.[w.id]?.absent).length;
+      rows.push([w.name,reg,ot||"",dtWk||"",trav||"",tot,sick||"",stat||"",abs||""]);
+    });
+    rows.push([]);
+  });
+
+  // Detailed day-by-day for both weeks, vertical per worker (reusing the single-week format twice)
+  rows.push(["WORKER HOURS DETAIL"]);
+  rows.push([]);
+  crew.forEach(w=>{
+    [w1,w2].forEach((wk,idx)=>{
+      const tot=snapTotalWorkedHrs(w,wk.dayData),ot=snapTotalDailyOT(w,wk.dayData),dtWk=snapTotalDailyDT(w,wk.dayData);
+      const reg=Math.round((tot-ot-dtWk)*100)/100;
+      const sick=snapTotalSickHrs(w,wk.dayData),stat=snapTotalStatHrs(w,wk.dayData);
+      const abs=DAYS.filter(d=>wk.dayData[d]?.workers?.[w.id]?.absent).length;
+      const trav=snapTotalTravelHrs(w,wk.dayData);
+      rows.push([w.name+" — Week "+(idx+1),w.role,w.phone||""]);
+      rows.push(["Week",wk.label,"Total Hrs",tot+"h","Regular",reg+"h","Overtime",ot>0?ot+"h":"None","Double Time",dtWk>0?dtWk+"h":"None","Travel",trav>0?trav+"h":"None","Sick Pay",sick>0?sick+"h":"None","Stat Pay",stat>0?stat+"h":"None","Absent Days",abs||"None"]);
+      // DT Hrs appended as the LAST column so import-relevant indices (jobsite/status/in/out/break/travel/notes) stay stable
+      rows.push(["Day","Date","Jobsite","Status","Time In","Time Out","Break","Travel Hrs","Regular Hrs","OT Hrs","Total Hrs","Notes","Worker Signed","Foreman Signed","DT Hrs"]);
+      DAYS.forEach((d,i)=>{
+        const wd2=wk.dayData[d]?.workers?.[w.id]||{};
+        const dd2=wk.dayData[d]||{};
+        const brk=wd2.break!==undefined?wd2.break:DEFAULT_BREAK;
+        const isSick=!!wd2.sick,isAbsent=!!wd2.absent,isStat=!!wd2.stat;
+        const skip=isSick||isAbsent||isStat;
+        const h=isSick?SICK_HRS:isStat?STAT_HRS:(isAbsent?0:calcHours(wd2.in||"",wd2.out||"",brk));
+        let status=isSick?"SICK DAY":isStat?"STAT HOLIDAY":isAbsent?"ABSENT"+(wd2.absentReason?" ("+wd2.absentReason+")":""):h>0?"":"Not recorded";
+        const travelDay=!skip?parseFloat(wd2.travel)||0:0;
+        const regD=skip?0:dayReg(h,d),otD=skip?0:dayOT(h,d),dtD=skip?0:dayDT(h,d);
+        if(!skip&&h>0)status=dtD>0?"Worked - DT":otD>0?"Worked - OT":"Worked";
+        rows.push([
+          d,wk.WD[i],dd2.jobsite||"",status,
+          skip?"":wd2.in||"",
+          skip?"":wd2.out||"",
+          skip?"":brk+"min",
+          travelDay||"",
+          regD||"",otD||"",h||"",
+          wd2.notes||"",
+          skip?"N/A":wd2.workerSig?"SIGNED":"NOT SIGNED",
+          skip?"N/A":wd2.foremanSig?"SIGNED":"NOT SIGNED",
+          dtD||""
+        ]);
+      });
+      rows.push([]);
+    });
+  });
+
+  const csv=BOM+rows.map(r=>r.map(c=>'"'+String(c==null?"":c).replace(/"/g,'""')+'"').join(",")).join("\r\n");
+  const blob=new Blob([csv],{type:"text/csv;charset=utf-8;"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");a.href=url;
+  a.download="hours-sheet-biweekly-"+combinedLabel.replace(/[^a-zA-Z0-9]/g,"-")+".csv";
+  document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
+}
+
+function runBiweeklyBoth(){
+  const weeks=getBiweeklyWeeks();
+  if(!weeks)return;
+  if(!foremanName){
+    window._biweeklyBothPending=true;
+    document.getElementById("foremanNameInput").value=foremanName;
+    openModal("foremanModal");
+    return;
+  }
+  generateBiweeklyCSV(weeks);
+  generateBiweeklyPDF(weeks);
+  closeModal("biweeklyModal");
+  toast("Biweekly CSV + PDF exported");
+}
+
+function generateBiweeklyPDF(weeks,pdfWin){
+  const [w1,w2]=weeks;
+  const generated=new Date().toLocaleString();
+  const combinedLabel=w1.WD[0]+" to "+w2.WD[6];
+  let workerBlocks="";
+
+  crew.forEach(w=>{
+    const worked1=snapTotalWorkedHrs(w,w1.dayData),worked2=snapTotalWorkedHrs(w,w2.dayData);
+    const ot1=snapTotalDailyOT(w,w1.dayData),ot2=snapTotalDailyOT(w,w2.dayData);
+    const trav1=snapTotalTravelHrs(w,w1.dayData),trav2=snapTotalTravelHrs(w,w2.dayData);
+    const sick1=snapTotalSickHrs(w,w1.dayData),sick2=snapTotalSickHrs(w,w2.dayData);
+    const stat1=snapTotalStatHrs(w,w1.dayData),stat2=snapTotalStatHrs(w,w2.dayData);
+    const abs1=DAYS.filter(d=>w1.dayData[d]?.workers?.[w.id]?.absent).length;
+    const abs2=DAYS.filter(d=>w2.dayData[d]?.workers?.[w.id]?.absent).length;
+    const dt1=snapTotalDailyDT(w,w1.dayData),dt2=snapTotalDailyDT(w,w2.dayData);
+    const workedAll=Math.round((worked1+worked2)*100)/100,otAll=Math.round((ot1+ot2)*100)/100,dtAllPdf=Math.round((dt1+dt2)*100)/100;
+    const travAll=Math.round((trav1+trav2)*100)/100;
+    const sickAll=sick1+sick2,statAll=stat1+stat2,absAll=abs1+abs2;
+    const totAll=Math.round((workedAll+travAll+sickAll+statAll)*100)/100;
+    const regAll=Math.round((workedAll-otAll-dtAllPdf)*100)/100;
+
+    let weekSections="";
+    [w1,w2].forEach((wk,idx)=>{
+      let dayRows="";
+      DAYS.forEach((d,i)=>{
+        const wd2=wk.dayData[d]?.workers?.[w.id]||{};
+        const dd2=wk.dayData[d]||{};
+        const brk=wd2.break!==undefined?wd2.break:DEFAULT_BREAK;
+        const isSick=!!wd2.sick,isAbsent=!!wd2.absent,isStat=!!wd2.stat;
+        const skip=isSick||isAbsent||isStat;
+        const h=isSick?SICK_HRS:isStat?STAT_HRS:(isAbsent?0:calcHours(wd2.in||"",wd2.out||"",brk));
+        const travelPDF=!skip?parseFloat(wd2.travel)||0:0;
+        const dReg=skip?0:dayReg(h,d),dOT=skip?0:dayOT(h,d),dDT=skip?0:dayDT(h,d);
+        let statusText="",statusColor="#333";
+        if(isSick){statusText="SICK DAY ("+SICK_HRS+"h sick pay)";statusColor="#c0392b";}
+        else if(isStat){statusText="STAT HOLIDAY ("+STAT_HRS+"h paid)";statusColor="#4a90d9";}
+        else if(isAbsent){statusText="ABSENT"+(wd2.absentReason?" — "+wd2.absentReason:"");statusColor="#6c3483";}
+        else if(h>0){statusText=wd2.in+" — "+wd2.out+(brk>0?", "+brk+"min break":"")+(travelPDF>0?", "+travelPDF+"h travel":"");statusColor="#222";}
+        else{statusText="Not recorded";statusColor="#bbb";}
+
+        const noSig=skip;
+        const wSigCell=noSig
+          ?'<td style="padding:8px;text-align:center;color:#999;font-size:11px;">N/A</td>'
+          :wd2.workerSig
+            ?'<td style="padding:4px;text-align:center"><img src="'+wd2.workerSig+'" style="height:36px;display:block;margin:0 auto"><div style="font-size:9px;color:#888;margin-top:2px">'+(wd2.workerSigTs||"")+'</div></td>'
+            :'<td style="padding:8px;text-align:center;color:#c0392b;font-size:11px;font-weight:700;">NOT SIGNED</td>';
+        const fSigCell=noSig
+          ?'<td style="padding:8px;text-align:center;color:#999;font-size:11px;">N/A</td>'
+          :wd2.foremanSig
+            ?'<td style="padding:4px;text-align:center"><img src="'+wd2.foremanSig+'" style="height:36px;display:block;margin:0 auto"><div style="font-size:9px;color:#888;margin-top:2px">'+(wd2.foremanSigTs||"")+'</div></td>'
+            :'<td style="padding:8px;text-align:center;color:#c0392b;font-size:11px;font-weight:700;">NOT SIGNED</td>';
+
+        dayRows+=`<tr style="border-bottom:1px solid #eee;background:${isSick?"#fff5f5":isStat?"#f0f6fc":isAbsent?"#f8f5ff":"#fff"}">
+          <td style="padding:7px;white-space:nowrap;font-weight:600;font-size:11px">${d}<br><span style="font-weight:400;color:#888;font-size:9px">${wk.WD[i]}</span></td>
+          <td style="padding:7px;font-size:10px;color:${statusColor}">${statusText}</td>
+          <td style="padding:7px;text-align:center;font-size:11px;font-weight:700;color:${dDT>0?"#c0392b":dOT>0?"#c97a10":h>0?"#27ae60":"#bbb"}">${h>0?h+"h":"—"}</td>
+          <td style="padding:7px;text-align:center;font-size:10px;color:#555">${dReg>0?dReg+"h":""}</td>
+          <td style="padding:7px;text-align:center;font-size:10px;color:#c97a10;font-weight:700">${dOT>0?dOT+"h":""}</td>
+          <td style="padding:7px;text-align:center;font-size:10px;color:#c0392b;font-weight:700">${dDT>0?dDT+"h":""}</td>
+          <td style="padding:7px;text-align:center;font-size:10px;color:#4a90d9">${travelPDF>0?travelPDF+"h":""}</td>
+          ${wSigCell}${fSigCell}
+        </tr>`;
+      });
+
+      weekSections+=`
+      <div style="margin-bottom:14px;">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#888;padding:8px 0 6px;">Week ${idx+1} — ${wk.label}</div>
+        <table style="width:100%;border-collapse:collapse;font-size:11px">
+          <thead><tr style="background:#f9f9f9">
+            <th style="padding:6px 7px;text-align:left;font-size:9px;text-transform:uppercase;color:#888;letter-spacing:.5px">Day</th>
+            <th style="padding:6px 7px;text-align:left;font-size:9px;text-transform:uppercase;color:#888;letter-spacing:.5px">Hours / Status</th>
+            <th style="padding:6px 7px;text-align:center;font-size:9px;text-transform:uppercase;color:#888;letter-spacing:.5px">Total</th>
+            <th style="padding:6px 7px;text-align:center;font-size:9px;text-transform:uppercase;color:#888;letter-spacing:.5px">Reg</th>
+            <th style="padding:6px 7px;text-align:center;font-size:9px;text-transform:uppercase;color:#888;letter-spacing:.5px">OT</th>
+            <th style="padding:6px 7px;text-align:center;font-size:9px;text-transform:uppercase;color:#888;letter-spacing:.5px">DT</th>
+            <th style="padding:6px 7px;text-align:center;font-size:9px;text-transform:uppercase;color:#888;letter-spacing:.5px">Travel</th>
+            <th style="padding:6px 7px;text-align:center;font-size:9px;text-transform:uppercase;color:#888;letter-spacing:.5px">Worker Sig</th>
+            <th style="padding:6px 7px;text-align:center;font-size:9px;text-transform:uppercase;color:#888;letter-spacing:.5px">Foreman Sig</th>
+          </tr></thead>
+          <tbody>${dayRows}</tbody>
+        </table>
+      </div>`;
+    });
+
+    workerBlocks+=`
+    <div style="page-break-inside:avoid;margin-bottom:32px;border:1px solid #ddd;border-radius:8px;overflow:hidden;">
+      <div style="background:#f5f5f5;border-bottom:2px solid ${otAll>0?"#c97a10":"#222"};padding:12px 16px;display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <div style="font-size:16px;font-weight:800">${w.name}</div>
+          <div style="font-size:11px;color:#666;margin-top:2px">${w.role}${w.phone?" &middot; "+w.phone:""}</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:20px;font-weight:800;color:#222">${totAll}h <span style="font-size:11px;color:#888;font-weight:400">(biweekly)</span></div>
+          <div style="font-size:11px;color:#666;margin-top:2px">
+            Regular: ${regAll}h
+            ${otAll>0?" &nbsp;|&nbsp; OT: "+otAll+"h":""}
+            ${dtAllPdf>0?" &nbsp;|&nbsp; DT: "+dtAllPdf+"h":""}
+            ${travAll>0?" &nbsp;|&nbsp; Travel: "+travAll+"h":""}
+            ${sickAll>0?" &nbsp;|&nbsp; Sick pay: "+sickAll+"h":""}
+            ${statAll>0?" &nbsp;|&nbsp; Stat pay: "+statAll+"h":""}
+            ${absAll>0?" &nbsp;|&nbsp; Absent: "+absAll+"d":""}
+          </div>
+        </div>
+      </div>
+      <div style="padding:4px 16px 12px">${weekSections}</div>
+    </div>`;
+  });
+
+  const html=`<!DOCTYPE html><html><head><meta charset="UTF-8">
+  <title>Biweekly Sign-off Sheet — ${combinedLabel}</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:'Helvetica Neue',Arial,sans-serif;color:#222;padding:28px;font-size:13px;}
+    @media print{.no-print{display:none!important;} body{padding:16px;}}
+  </style>
+  </head><body>
+  <div class="no-print" style="background:#1a1a1a;color:#fff;padding:12px 16px;margin:-28px -28px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px;">
+    <span style="font-size:13px;font-weight:600">To save as PDF: tap Print, then choose Save as PDF</span>
+    <button onclick="window.print()" style="background:#c97a10;color:#fff;border:none;border-radius:6px;padding:9px 20px;font-weight:700;cursor:pointer;font-size:13px;white-space:nowrap">Print / Save PDF</button>
+  </div>
+
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;padding-bottom:16px;border-bottom:3px solid #111;">
+    <div>
+      <div style="font-size:24px;font-weight:800;text-transform:uppercase;letter-spacing:1px">Biweekly Hours Sign-off Sheet</div>
+      <div style="font-size:13px;color:#555;margin-top:5px">Pay Period: ${combinedLabel}</div>
+      <div style="font-size:11px;color:#888;margin-top:2px">Week 1: ${w1.label} &nbsp;&middot;&nbsp; Week 2: ${w2.label}</div>
+      <div style="font-size:11px;color:#999;margin-top:2px">Generated: ${generated}</div>
+    </div>
+    <div style="text-align:right;border:1px solid #ddd;border-radius:8px;padding:10px 16px;">
+      <div style="font-size:10px;color:#888;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px">Foreman</div>
+      <div style="font-size:16px;font-weight:800">${foremanName}</div>
+    </div>
+  </div>
+
+  ${workerBlocks}
+
+  <div style="margin-top:24px;padding-top:12px;border-top:1px solid #ddd;font-size:10px;color:#aaa;text-align:center;">
+    Hours Sheet &nbsp;&mdash;&nbsp; ${combinedLabel} &nbsp;&mdash;&nbsp; Foreman: ${foremanName} &nbsp;&mdash;&nbsp; Generated ${generated}
+  </div>
+  </body></html>`;
+
+  const w=pdfWin||window.open('','_blank');
+  if(w){w.document.open();w.document.write(html);w.document.close();}
+  else{document.open();document.write(html);document.close();}
+}
+refreshWeekUI();
+render();
+
+// FOREMAN NAME
+let foremanName=localStorage.getItem("hs4_foreman")||"";
+function saveForemanName(){
+  foremanName=document.getElementById("foremanNameInput").value.trim();
+  localStorage.setItem("hs4_foreman",foremanName);
+  closeModal("foremanModal");
+  toast("Name saved");
+  // Open the window NOW while we still have the user gesture
+  const pdfWin=window.open('','_blank');
+  if(window._pdfPending){window._pdfPending=false;generatePDF(pdfWin);}
+  else if(window._biweeklyBothPending){
+    window._biweeklyBothPending=false;
+    const wks=getBiweeklyWeeks();
+    if(wks){
+      generateBiweeklyCSV(wks);
+      generateBiweeklyPDF(wks,pdfWin);
+      closeModal("biweeklyModal");
+      toast("Biweekly CSV + PDF exported");
+    }
+  } else if(pdfWin){pdfWin.close();}
+}
+
+function exportSignoffPDF(){
+  // Always show modal so foreman can confirm/change their name
+  document.getElementById("foremanNameInput").value=foremanName;
+  window._pdfPending=true;
+  openModal("foremanModal");
+}
+
+function generatePDF(pdfWin){
+  const generated=new Date().toLocaleString();
+  let workerBlocks="";
+
+  crew.forEach(w=>{
+    const worked=totalWorkedHrs(w),ot=totalDailyOT(w),dtWk=totalDailyDT(w),reg=Math.round((worked-ot-dtWk)*100)/100;
+    const trav=totalTravelHrs(w);
+    const sickH=totalSickHrsWeek(w),statH=totalStatHrsWeek(w),absDays=DAYS.filter(d=>dayData[d]?.workers?.[w.id]?.absent).length;
+    const tot=Math.round((worked+trav+sickH+statH)*100)/100; // total includes travel+sick+stat
+
+    let dayRows="";
+    DAYS.forEach((d,i)=>{
+      const wd=dayData[d]?.workers?.[w.id]||{};
+      const dd=dayData[d]||{};
+      const brk=wd.break!==undefined?wd.break:DEFAULT_BREAK;
+      const isSick=!!wd.sick,isAbsent=!!wd.absent,isStat=!!wd.stat;
+      const skip=isSick||isAbsent||isStat;
+      const h=isSick?SICK_HRS:isStat?STAT_HRS:(isAbsent?0:calcHours(wd.in||"",wd.out||"",brk));
+      const travelPDF=!skip?parseFloat(wd.travel)||0:0;
+      const workedPDF=!skip?dayWorkedOnly(wd):0;
+      const dReg=skip?0:dayReg(workedPDF,d),dOT=skip?0:dayOT(workedPDF,d),dDT=skip?0:dayDT(workedPDF,d);
+      let statusText="",statusColor="#333";
+      if(isSick){statusText="SICK DAY ("+SICK_HRS+"h sick pay)";statusColor="#c0392b";}
+      else if(isStat){statusText="STAT HOLIDAY ("+STAT_HRS+"h paid)";statusColor="#4a90d9";}
+      else if(isAbsent){statusText="ABSENT"+(wd.absentReason?" — "+wd.absentReason:"");statusColor="#6c3483";}
+      else if(h>0){statusText=wd.in+" — "+wd.out+(brk>0?", "+brk+"min break":"")+(travelPDF>0?", "+travelPDF+"h travel":"");statusColor="#222";}
+      else{statusText="Not recorded";statusColor="#bbb";}
+
+      // Signature cells
+      const noSig=skip;
+      const wSigCell=noSig
+        ?'<td style="padding:8px;text-align:center;color:#999;font-size:11px;">N/A</td>'
+        :wd.workerSig
+          ?'<td style="padding:4px;text-align:center"><img src="'+wd.workerSig+'" style="height:40px;display:block;margin:0 auto"><div style="font-size:9px;color:#888;margin-top:2px">'+( wd.workerSigTs||"")+'</div></td>'
+          :'<td style="padding:8px;text-align:center;color:#c0392b;font-size:11px;font-weight:700;">NOT SIGNED</td>';
+      const fSigCell=noSig
+        ?'<td style="padding:8px;text-align:center;color:#999;font-size:11px;">N/A</td>'
+        :wd.foremanSig
+          ?'<td style="padding:4px;text-align:center"><img src="'+wd.foremanSig+'" style="height:40px;display:block;margin:0 auto"><div style="font-size:9px;color:#888;margin-top:2px">'+(wd.foremanSigTs||"")+'</div></td>'
+          :'<td style="padding:8px;text-align:center;color:#c0392b;font-size:11px;font-weight:700;">NOT SIGNED</td>';
+
+      dayRows+=`<tr style="border-bottom:1px solid #eee;background:${isSick?"#fff5f5":isStat?"#f0f6fc":isAbsent?"#f8f5ff":"#fff"}">
+        <td style="padding:8px;white-space:nowrap;font-weight:600;font-size:12px">${d}<br><span style="font-weight:400;color:#888;font-size:10px">${WD[i]}</span></td>
+        <td style="padding:8px;font-size:11px;color:${statusColor}">${statusText}</td>
+        <td style="padding:8px;text-align:center;font-size:12px;font-weight:700;color:${dDT>0?"#c0392b":dOT>0?"#c97a10":h>0?"#27ae60":"#bbb"}">${h>0?h+"h":"—"}</td>
+        <td style="padding:8px;text-align:center;font-size:11px;color:#555">${dReg>0?dReg+"h":""}</td>
+        <td style="padding:8px;text-align:center;font-size:11px;color:#c97a10;font-weight:700">${dOT>0?dOT+"h":""}</td>
+        <td style="padding:8px;text-align:center;font-size:11px;color:#c0392b;font-weight:700">${dDT>0?dDT+"h":""}</td>
+        <td style="padding:8px;text-align:center;font-size:11px;color:#4a90d9">${travelPDF>0?travelPDF+"h":""}</td>
+        ${wSigCell}${fSigCell}
+      </tr>`;
+    });
+
+    workerBlocks+=`
+    <div style="page-break-inside:avoid;margin-bottom:32px;border:1px solid #ddd;border-radius:8px;overflow:hidden;">
+      <div style="background:#f5f5f5;border-bottom:2px solid ${dtWk>0?"#c0392b":ot>0?"#c97a10":"#222"};padding:12px 16px;display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <div style="font-size:16px;font-weight:800">${w.name}</div>
+          <div style="font-size:11px;color:#666;margin-top:2px">${w.role}${w.phone?" &middot; "+w.phone:""}</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:20px;font-weight:800;color:#222">${tot}h</div>
+          <div style="font-size:11px;color:#666;margin-top:2px">
+            Regular: ${reg}h
+            ${ot>0?" &nbsp;|&nbsp; OT: "+ot+"h":""}
+            ${dtWk>0?" &nbsp;|&nbsp; DT: "+dtWk+"h":""}
+            ${trav>0?" &nbsp;|&nbsp; Travel: "+trav+"h":""}
+            ${sickH>0?" &nbsp;|&nbsp; Sick pay: "+sickH+"h":""}
+            ${statH>0?" &nbsp;|&nbsp; Stat pay: "+statH+"h":""}
+            ${absDays>0?" &nbsp;|&nbsp; Absent: "+absDays+"d":""}
+          </div>
+        </div>
+      </div>
+      <table style="width:100%;border-collapse:collapse;font-size:12px">
+        <thead>
+          <tr style="background:#f9f9f9">
+            <th style="padding:7px 8px;text-align:left;font-size:10px;text-transform:uppercase;color:#888;letter-spacing:.5px">Day</th>
+            <th style="padding:7px 8px;text-align:left;font-size:10px;text-transform:uppercase;color:#888;letter-spacing:.5px">Hours / Status</th>
+            <th style="padding:7px 8px;text-align:center;font-size:10px;text-transform:uppercase;color:#888;letter-spacing:.5px">Total</th>
+            <th style="padding:7px 8px;text-align:center;font-size:10px;text-transform:uppercase;color:#888;letter-spacing:.5px">Reg</th>
+            <th style="padding:7px 8px;text-align:center;font-size:10px;text-transform:uppercase;color:#888;letter-spacing:.5px">OT</th>
+            <th style="padding:7px 8px;text-align:center;font-size:10px;text-transform:uppercase;color:#888;letter-spacing:.5px">DT</th>
+            <th style="padding:7px 8px;text-align:center;font-size:10px;text-transform:uppercase;color:#888;letter-spacing:.5px">Travel</th>
+            <th style="padding:7px 8px;text-align:center;font-size:10px;text-transform:uppercase;color:#888;letter-spacing:.5px">Worker Signature</th>
+            <th style="padding:7px 8px;text-align:center;font-size:10px;text-transform:uppercase;color:#888;letter-spacing:.5px">Foreman Signature</th>
+          </tr>
+        </thead>
+        <tbody>${dayRows}</tbody>
+      </table>
+    </div>`;
+  });
+
+  const html=`<!DOCTYPE html><html><head><meta charset="UTF-8">
+  <title>Sign-off Sheet — ${WEEK_LABEL}</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:'Helvetica Neue',Arial,sans-serif;color:#222;padding:28px;font-size:13px;}
+    @media print{.no-print{display:none!important;} body{padding:16px;}}
+  </style>
+  </head><body>
+  <div class="no-print" style="background:#1a1a1a;color:#fff;padding:12px 16px;margin:-28px -28px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px;">
+    <span style="font-size:13px;font-weight:600">To save as PDF: tap Print, then choose Save as PDF</span>
+    <button onclick="window.print()" style="background:#c97a10;color:#fff;border:none;border-radius:6px;padding:9px 20px;font-weight:700;cursor:pointer;font-size:13px;white-space:nowrap">Print / Save PDF</button>
+  </div>
+
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;padding-bottom:16px;border-bottom:3px solid #111;">
+    <div>
+      <div style="font-size:24px;font-weight:800;text-transform:uppercase;letter-spacing:1px">Hours Sign-off Sheet</div>
+      <div style="font-size:13px;color:#555;margin-top:5px">Week of ${WEEK_LABEL}</div>
+      <div style="font-size:11px;color:#999;margin-top:2px">Generated: ${generated}</div>
+    </div>
+    <div style="text-align:right;border:1px solid #ddd;border-radius:8px;padding:10px 16px;">
+      <div style="font-size:10px;color:#888;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px">Foreman</div>
+      <div style="font-size:16px;font-weight:800">${foremanName}</div>
+    </div>
+  </div>
+
+  ${workerBlocks}
+
+  <div style="margin-top:24px;padding-top:12px;border-top:1px solid #ddd;font-size:10px;color:#aaa;text-align:center;">
+    Hours Sheet &nbsp;&mdash;&nbsp; ${WEEK_LABEL} &nbsp;&mdash;&nbsp; Foreman: ${foremanName} &nbsp;&mdash;&nbsp; Generated ${generated}
+  </div>
+  </body></html>`;
+
+  const w=pdfWin||window.open('','_blank');
+  if(w){w.document.open();w.document.write(html);w.document.close();}
+  else{document.open();document.write(html);document.close();}
+}
+</script>
+</body>
+</html>
